@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Editor do catálogo · uso interno</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#2A2126;--paper:#F4ECE3;--card:#fff;--line:#E3D6C9;--teal:#A63E60;--muted:#5C4A52;--dark:#33222A}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:16px}
+  header{position:sticky;top:0;z-index:20;background:var(--dark);color:#fff;padding:16px 22px;
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  header h1{font-size:18px;margin:0;font-weight:700}
+  header .sub{font-size:13px;color:#CBB9AE;margin-left:auto}
+  .wrap{max-width:1240px;margin:0 auto;padding:22px}
+  .aviso{background:#F6E7EA;border:1px solid #EAD3D9;border-radius:12px;padding:16px 18px;margin-bottom:22px;font-size:15px;line-height:1.6}
+  .aviso b{color:var(--teal)}
+  .barra{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+  button{font-family:inherit;font-size:14.5px;font-weight:600;border-radius:9px;border:1px solid var(--line);
+    background:var(--card);color:var(--ink);padding:10px 16px;cursor:pointer}
+  button.pri{background:var(--teal);border-color:var(--teal);color:#fff}
+  button:hover{filter:brightness(.97)}
+  .prog{font-size:14px;color:var(--muted);margin-left:auto}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+  .item.pend{border-color:#E0B33F;box-shadow:0 0 0 2px rgba(224,179,63,.18)}
+  .item .im{aspect-ratio:1/1;background:#EDE0D4;cursor:zoom-in}
+  .item .im img{width:100%;height:100%;object-fit:cover;display:block}
+  .item .bd{padding:11px;display:flex;flex-direction:column;gap:8px}
+  .cod{font-size:11.5px;letter-spacing:.08em;color:var(--muted)}
+  input,select{font-family:inherit;font-size:14px;width:100%;padding:8px 10px;border:1px solid var(--line);
+    border-radius:8px;background:#fff;color:var(--ink)}
+  select:focus,input:focus{outline:2px solid var(--teal);outline-offset:1px}
+  #saida{width:100%;height:280px;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;padding:14px;
+    border:1px solid var(--line);border-radius:12px;margin-top:14px;display:none}
+  .zoom{position:fixed;inset:0;background:rgba(28,20,24,.93);display:none;align-items:center;justify-content:center;z-index:50;padding:24px}
+  .zoom.on{display:flex}
+  .zoom img{max-width:min(900px,92vw);max-height:88vh;border-radius:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Editor do catálogo</h1>
+  <span class="sub">uso interno · não é publicado · nada sai daqui sem você clicar em exportar</span>
+</header>
+
+<div class="wrap">
+  <div class="aviso">
+    <b>Como usar:</b> passe pelas 71 peças, escolha a categoria certa e (opcional) escreva um nome curto — ex.: “Chaveiro flor com inicial”.
+    Nome em branco = o site mostra só o código da peça, que é melhor do que um nome errado.
+    Suas escolhas ficam salvas neste navegador enquanto você trabalha. No fim, clique em
+    <b>Exportar produtos.js</b>, copie o conteúdo e substitua o arquivo <code>produtos.js</code> no servidor.
+  </div>
+
+  <div class="barra">
+    <button class="pri" id="exportar">Exportar produtos.js</button>
+    <button id="copiar">Copiar para a área de transferência</button>
+    <button id="limpar">Descartar alterações locais</button>
+    <span class="prog" id="prog"></span>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <textarea id="saida" spellcheck="false" readonly></textarea>
+</div>
+
+<div class="zoom" id="zoom"><img id="zoomImg" src="" alt=""></div>
+
+<script src="../produtos.js"></script>
+<script>
+(function(){
+  const KEY="oomm_catalogo_v1";
+  const grid=document.getElementById("grid");
+  const salvos=JSON.parse(localStorage.getItem(KEY)||"{}");
+  const dados=PRODUTOS.map(p=>({
+    i:p.i,
+    c:(salvos[p.i]&&salvos[p.i].c)||p.c,
+    n:(salvos[p.i]&&salvos[p.i].n!==undefined)?salvos[p.i].n:(p.n||""),
+    ok:!!(salvos[p.i]&&salvos[p.i].ok)
+  }));
+  const opts=CATEGORIAS.filter(c=>c.id!=="todos");
+
+  function pad(n){return String(n).padStart(2,"0");}
+  function persistir(){
+    const o={}; dados.forEach(d=>o[d.i]={c:d.c,n:d.n,ok:d.ok});
+    localStorage.setItem(KEY,JSON.stringify(o)); progresso();
+  }
+  function progresso(){
+    const n=dados.filter(d=>d.ok).length;
+    document.getElementById("prog").textContent=n+" de "+dados.length+" peças revisadas";
+  }
+
+  dados.forEach(d=>{
+    const el=document.createElement("div");
+    el.className="item"+(d.ok?"":" pend");
+    el.innerHTML=
+      '<div class="im"><img src="../img/catalogo/t/p'+pad(d.i)+'.jpg" loading="lazy" alt=""></div>'+
+      '<div class="bd">'+
+        '<div class="cod">OOMM-'+String(d.i).padStart(3,"0")+'</div>'+
+        '<select>'+opts.map(o=>'<option value="'+o.id+'"'+(o.id===d.c?" selected":"")+'>'+o.nome+'</option>').join("")+'</select>'+
+        '<input type="text" placeholder="nome da peça (opcional)" value="'+d.n.replace(/"/g,"&quot;")+'">'+
+      '</div>';
+    const sel=el.querySelector("select"), inp=el.querySelector("input");
+    function marca(){ d.ok=true; el.classList.remove("pend"); persistir(); }
+    sel.addEventListener("change",()=>{ d.c=sel.value; marca(); });
+    inp.addEventListener("input",()=>{ d.n=inp.value; marca(); });
+    el.querySelector(".im").addEventListener("click",()=>{
+      document.getElementById("zoomImg").src="../img/catalogo/p"+pad(d.i)+".jpg";
+      document.getElementById("zoom").classList.add("on");
+    });
+    grid.appendChild(el);
+  });
+  progresso();
+
+  document.getElementById("zoom").addEventListener("click",e=>e.currentTarget.classList.remove("on"));
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape") document.getElementById("zoom").classList.remove("on"); });
+
+  function gerar(){
+    const linhas=dados.map(d=>'  {c:"'+d.c+'", n:"'+d.n.replace(/"/g,'\\"')+'", i:'+d.i+'}').join(",\n");
+    return '/* ------------------------------------------------------------------\n'+
+      '   CATÁLOGO OOMM STUDIO — base de dados das peças\n'+
+      '   Gerado pelo editor em '+new Date().toLocaleString("pt-BR")+'\n'+
+      '     c = categoria | n = nome (vazio = só o código) | i = número da imagem\n'+
+      '------------------------------------------------------------------ */\n'+
+      'const CATEGORIAS = '+JSON.stringify(CATEGORIAS,null,2).replace(/"([a-z]+)":/g,'$1:')+';\n\n'+
+      'const PRODUTOS = [\n'+linhas+'\n];\n';
+  }
+  document.getElementById("exportar").addEventListener("click",()=>{
+    const t=document.getElementById("saida"); t.value=gerar(); t.style.display="block"; t.scrollIntoView({behavior:"smooth"});
+  });
+  document.getElementById("copiar").addEventListener("click",async()=>{
+    try{ await navigator.clipboard.writeText(gerar()); alert("produtos.js copiado. Cole no arquivo e suba para o servidor."); }
+    catch(e){ const t=document.getElementById("saida"); t.value=gerar(); t.style.display="block"; t.select(); alert("Selecione e copie o texto abaixo."); }
+  });
+  document.getElementById("limpar").addEventListener("click",()=>{
+    if(confirm("Descartar todas as alterações feitas neste navegador?")){ localStorage.removeItem(KEY); location.reload(); }
+  });
+})();
+</script>
+</body>
+</html>
