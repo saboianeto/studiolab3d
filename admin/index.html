@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Admin · OOMM Studio</title>
-<!-- ADMIN v3 · 18/07/2026 — se a tela ainda mostrar apenas "Falhou.", o arquivo antigo está em cache -->
+<!-- ADMIN v5 · 18/07/2026 — sem tela de login: a proteção é do Cloudflare Access -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{--ink:#2A2126;--paper:#F4ECE3;--card:#fff;--line:#E3D6C9;--teal:#A63E60;--teal-d:#9B3A58;
@@ -96,38 +96,11 @@
 </head>
 <body>
 
-<!-- ============ LOGIN ============ -->
-<div id="telaLogin">
-  <div class="login">
-    <h2>Área administrativa</h2>
-    <p class="sub">Acesso restrito. Informe o e-mail cadastrado para receber o código.</p>
-
-    <div id="passo1">
-      <label for="email">E-mail</label>
-      <input id="email" type="email" autocomplete="email" placeholder="seu@email.com">
-      <div style="margin-top:14px"><button class="pri" id="btnCodigo" style="width:100%">Enviar código</button></div>
-    </div>
-
-    <div id="passo2" hidden>
-      <label for="codigo">Código de 6 dígitos</label>
-      <input id="codigo" inputmode="numeric" maxlength="6" placeholder="000000"
-             style="letter-spacing:.5em;font-size:22px;text-align:center;font-weight:700">
-      <div style="margin-top:14px;display:flex;gap:10px">
-        <button class="pri" id="btnEntrar" style="flex:1">Entrar</button>
-        <button id="btnVoltar">Voltar</button>
-      </div>
-    </div>
-
-    <div id="msgLogin"></div>
-    <p style="margin:18px 0 0;text-align:center;font-size:12px;color:#9A8A82;letter-spacing:.06em">ADMIN v3 · 18/07/2026</p>
-  </div>
-</div>
-
 <!-- ============ PAINEL ============ -->
-<div id="telaPainel" hidden>
+<div id="telaPainel">
   <header class="top">
     <h1>Admin · OOMM Studio</h1>
-    <span class="quem" id="quem"></span><span class="quem" style="margin-left:0;opacity:.7">· v3 · 18/07/2026</span>
+    <span class="quem" id="quem"></span><span class="quem" style="margin-left:0;opacity:.7">· v5 · 18/07/2026</span>
     <a href="editor-catalogo.html" style="color:#EE9CB2;font-size:13.5px;text-decoration:underline">Editor de categorias</a>
     <button id="sair" style="background:transparent;border-color:#5A424C;color:#fff;padding:7px 13px;font-size:13.5px">Sair</button>
   </header>
@@ -162,143 +135,71 @@
 
   <div class="barra">
     <span class="cont" id="contador"></span>
-    <button class="pri" id="btnExportar" style="margin-left:auto">Gerar pacote para publicar</button>
-    <button id="btnDescartar" style="background:transparent;border-color:#5A424C;color:#fff">Descartar tudo</button>
+    <button class="pri" id="btnPublicar" style="margin-left:auto">Publicar no site</button>
+    <button id="btnDescartar" style="background:transparent;border-color:#5A424C;color:#fff">Descartar alterações</button>
   </div>
 </div>
 
 <div class="zoom" id="zoom"><img id="zoomImg" src="" alt=""></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="../produtos.js"></script>
 <script src="../admin-slots.js"></script>
 <script>
 (function(){
   "use strict";
-  const EMAIL_AUTORIZADO = "saboianeto@yahoo.com.br";
-  const CHAVE = "oomm_admin_sessao";
-  const BASE = "../";   // admin fica em /admin/, o site está um nível acima
-  let modoServidor = false;   // vira true se a API responder
+    const BASE = "../";   // admin fica em /admin/, o site está um nível acima
   let email = "";
 
   const $ = s => document.querySelector(s);
   const msg = (el, texto, tipo) => { el.innerHTML = texto ? '<div class="msg '+tipo+'">'+texto+'</div>' : ""; };
 
-  /* ================= LOGIN ================= */
-  // Detecta se existe backend. Num site estático a resposta pode ser 404, 405,
-  // 403 ou uma página HTML de erro — nenhuma delas é uma API. Tudo isso vira SEM_API.
-  async function api(rota, corpo){
-    let r;
-    try{
-      r = await fetch(rota, {method:"POST", headers:{"Content-Type":"application/json"},
-                             body:JSON.stringify(corpo), credentials:"same-origin"});
-    }catch(e){
-      throw new Error("SEM_API");            // rede, CORS ou servidor mudo
-    }
-    const tipo = r.headers.get("Content-Type") || "";
-    if(!tipo.includes("application/json")) throw new Error("SEM_API");   // devolveu HTML, não API
-    let j = null;
-    try{ j = await r.json(); }catch(e){ throw new Error("SEM_API"); }
-    if(!r.ok) throw new Error(j && j.erro ? j.erro : "Não foi possível enviar o código.");
-    return j;
-  }
+  /* ============ IDENTIDADE ============
+     A proteção é feita pelo Cloudflare Access, no servidor, antes desta página
+     existir. Quem chegou até aqui já passou pela autenticação. Não faz sentido
+     esta página pedir login de novo — ela nem teria como verificar nada.
+     Tentamos só descobrir QUEM entrou, para mostrar no topo. Se não der, tudo
+     bem: isso é informação, não é controle de acesso.                        */
 
-  $("#btnCodigo").addEventListener("click", async ()=>{
-    const e = $("#email").value.trim().toLowerCase();
-    if(!e){ msg($("#msgLogin"),"Informe o e-mail.","err"); return; }
-    if(e !== EMAIL_AUTORIZADO){
-      msg($("#msgLogin"),"Este e-mail não tem acesso a esta área.","err"); return;
-    }
-    $("#btnCodigo").disabled = true;
-    try{
-      await api("/api/auth/request", {email:e});
-      modoServidor = true; email = e;
-      $("#passo1").hidden = true; $("#passo2").hidden = false; $("#codigo").focus();
-      msg($("#msgLogin"),"Código enviado para <b>"+e+"</b>. Ele expira em 10 minutos.","ok");
-    }catch(err){
-      if(err.message === "SEM_API"){
-        email = e;
-        msg($("#msgLogin"),
-          "<b>Não há servidor de e-mail conectado a este site.</b><br><br>"+
-          "O site está no GitHub Pages, que só entrega arquivos — não existe nada aqui capaz de "+
-          "enviar um código nem de guardar o que você subir. Isso não é defeito da página: é o "+
-          "limite da hospedagem.<br><br>"+
-          "O painel funciona por inteiro em <b>modo local</b>: as fotos são processadas no seu "+
-          "próprio computador e no fim você baixa um pacote pronto para publicar. Nada sai daqui.<br><br>"+
-          "Para ligar o login por e-mail de verdade, veja <code>LEIA-ME-ADMIN.md</code>.","warn");
-        const b = document.createElement("button");
-        b.className = "pri"; b.style.cssText = "width:100%;margin-top:14px";
-        b.textContent = "Entrar em modo local";
-        b.onclick = ()=>entrar(false);
-        $("#msgLogin").appendChild(b);
-      } else {
-        msg($("#msgLogin"), err.message, "err");
-      }
-    }finally{ $("#btnCodigo").disabled = false; }
-  });
-
-  $("#btnVoltar").addEventListener("click", ()=>{ $("#passo2").hidden=true; $("#passo1").hidden=false; msg($("#msgLogin"),"",""); });
-
-  $("#btnEntrar").addEventListener("click", async ()=>{
-    const c = $("#codigo").value.trim();
-    if(c.length !== 6){ msg($("#msgLogin"),"O código tem 6 dígitos.","err"); return; }
-    $("#btnEntrar").disabled = true;
-    try{ await api("/api/auth/verify", {email, codigo:c}); entrar(true); }
-    catch(err){ msg($("#msgLogin"), err.message === "SEM_API" ? "O servidor parou de responder. Recarregue a página." : err.message, "err"); }
-    finally{ $("#btnEntrar").disabled = false; }
-  });
-
-  $("#codigo").addEventListener("keydown", e=>{ if(e.key==="Enter") $("#btnEntrar").click(); });
-  $("#email").addEventListener("keydown", e=>{ if(e.key==="Enter") $("#btnCodigo").click(); });
-
-  function entrar(comServidor){
-    modoServidor = comServidor;
-    sessionStorage.setItem(CHAVE, JSON.stringify({email, servidor:comServidor}));
-    $("#telaLogin").hidden = true; $("#telaPainel").hidden = false;
-    $("#quem").textContent = email + (comServidor ? "" : " · modo local");
-    msg($("#avisoModo"), comServidor ? "" :
-      "<b>Modo local.</b> Nada é enviado para a internet: as fotos são redimensionadas aqui no seu navegador. "+
-      "Ao terminar, clique em <b>Gerar pacote para publicar</b> e envie o conteúdo do ZIP para o servidor.", "warn");
-    montarCatalogo(); montarSlots(); contar();
-  }
-
-  $("#sair").addEventListener("click", async ()=>{
-    sessionStorage.removeItem(CHAVE);
+  async function quemEntrou(){
     try{
       const r = await fetch("/cdn-cgi/access/get-identity", {credentials:"same-origin"});
-      if(r.ok && (r.headers.get("Content-Type")||"").includes("application/json")){
-        location.href = "/cdn-cgi/access/logout";   // encerra também a sessão do Access
-        return;
+      if(!r.ok) return null;
+      if(!(r.headers.get("Content-Type")||"").includes("application/json")) return null;
+      const id = await r.json();
+      return (id && id.email) ? String(id.email).toLowerCase() : null;
+    }catch(e){ return null; }
+  }
+
+  async function carregarCatalogo(){
+    try{
+      const r = await fetch("/api/catalogo", {cache:"no-store"});
+      if(!r.ok) return;
+      const d = await r.json();
+      if(d && Array.isArray(d.produtos) && d.produtos.length){
+        PRODUTOS.length = 0; d.produtos.forEach(p=>PRODUTOS.push(p));
+        if(Array.isArray(d.categorias) && d.categorias.length){
+          CATEGORIAS.length = 0; d.categorias.forEach(c=>CATEGORIAS.push(c));
+        }
       }
     }catch(e){}
-    location.reload();
-  });
-
-  // Se a página está protegida pelo Cloudflare Access, quem chegou aqui JÁ se
-  // autenticou por código de e-mail. Não faz sentido pedir login de novo.
-  async function detectarAccess(){
-    try{
-      const r = await fetch("/cdn-cgi/access/get-identity", {credentials:"same-origin"});
-      if(!r.ok) return false;
-      const tipo = r.headers.get("Content-Type") || "";
-      if(!tipo.includes("application/json")) return false;
-      const id = await r.json();
-      if(!id || !id.email) return false;
-      email = String(id.email).toLowerCase();
-      entrar(true);
-      msg($("#avisoModo"),
-        "Você entrou por <b>código de e-mail</b> (Cloudflare Access). Esta área está "+
-        "bloqueada no servidor: quem não estiver na regra não chega nem a ver esta tela.", "ok");
-      return true;
-    }catch(e){ return false; }
   }
 
   (async function iniciar(){
-    if(await detectarAccess()) return;
-    const s = sessionStorage.getItem(CHAVE);
-    if(!s) return;
-    try{ const o = JSON.parse(s); email = o.email; entrar(o.servidor); }catch(e){}
+    email = (await quemEntrou()) || "";
+    await carregarCatalogo();
+    try{
+      const r = await fetch("/api/admin/slots-atuais", {credentials:"same-origin"});
+      if(r.ok) window.__slotsAtuais = await r.json();
+    }catch(e){ window.__slotsAtuais = {}; }
+    $("#quem").textContent = email || "sessão autenticada";
+    msg($("#avisoModo"),
+      "As fotos são processadas aqui no seu navegador — nada é enviado para a internet. "+
+      "Ao terminar, clique em <b>Gerar pacote para publicar</b> e suba os arquivos do ZIP para o repositório.",
+      "ok");
+    montarCatalogo(); montarSlots(); contar();
   })();
+
+  $("#sair").addEventListener("click", ()=>{ location.href = "/cdn-cgi/access/logout"; });
 
   /* ================= ESTADO ================= */
   const novas = [];                // {id, cat, nome, blobFull, blobThumb, url}
@@ -375,7 +276,7 @@
       if(removidas.has(p.i)) return;
       const e0 = edicoes[p.i] || {c:p.c, n:p.n};
       const el = document.createElement("div"); el.className = "peca";
-      const arq = BASE+"img/catalogo/t/p"+String(p.i).padStart(2,"0")+".jpg";
+      const arq = p.r ? "/fotos/t/p"+p.i+".jpg" : BASE+"img/catalogo/t/p"+String(p.i).padStart(2,"0")+".jpg";
       el.innerHTML =
         '<div class="im"><img src="'+arq+'" loading="lazy" alt=""></div>'+
         '<div class="bd"><div class="cod">OOMM-'+String(p.i).padStart(3,"0")+'</div>'+
@@ -388,7 +289,7 @@
           removidas.add(p.i); montarCatalogo(); contar();
         }
       };
-      el.querySelector(".im").onclick = ()=>abrirZoom(BASE+"img/catalogo/p"+String(p.i).padStart(2,"0")+".jpg");
+      el.querySelector(".im").onclick = ()=>abrirZoom(p.r ? "/fotos/p"+p.i+".jpg" : BASE+"img/catalogo/p"+String(p.i).padStart(2,"0")+".jpg");
       g.appendChild(el);
     });
   }
@@ -450,8 +351,8 @@
     if(r)  partes.push("<b>"+r+"</b> removida(s)");
     if(ed) partes.push("<b>"+ed+"</b> editada(s)");
     if(t)  partes.push("<b>"+t+"</b> foto(s) de página trocada(s)");
-    $("#contador").innerHTML = partes.length ? partes.join(" · ") : "Nenhuma alteração ainda.";
-    $("#btnExportar").disabled = !partes.length;
+    $("#contador").innerHTML = partes.length ? (partes.join(" · ") + " — ainda não publicado") : "Tudo publicado. Nenhuma alteração pendente.";
+    $("#btnPublicar").disabled = !partes.length;
   }
 
   $("#btnDescartar").addEventListener("click", ()=>{
@@ -462,74 +363,98 @@
     montarCatalogo(); montarSlots(); contar();
   });
 
-  /* ================= EXPORTAR ================= */
-  function gerarProdutosJS(){
-    const linhas = [];
+  /* ================= PUBLICAR ================= */
+  function montarLista(){
+    const lista = [];
     PRODUTOS.forEach(p=>{
       if(removidas.has(p.i)) return;
       const e0 = edicoes[p.i] || {c:p.c, n:p.n};
-      linhas.push('  {c:"'+e0.c+'", n:"'+(e0.n||"").replace(/"/g,'\\"')+'", i:'+p.i+'}');
+      const item = {c:e0.c, n:e0.n||"", i:p.i};
+      if(p.r) item.r = 1;
+      lista.push(item);
     });
-    novas.forEach(n=> linhas.push('  {c:"'+n.cat+'", n:"'+n.nome.replace(/"/g,'\\"')+'", i:'+n.id+'}'));
-    return '/* Gerado pela área admin em '+new Date().toLocaleString("pt-BR")+' */\n'+
-           'const CATEGORIAS = '+JSON.stringify(CATEGORIAS,null,2).replace(/"([a-z]+)":/g,'$1:')+';\n\n'+
-           'const PRODUTOS = [\n'+linhas.join(",\n")+'\n];\n';
+    novas.forEach(n=> lista.push({c:n.cat, n:n.nome||"", i:n.id, r:1}));
+    return lista;
   }
 
-  $("#btnExportar").addEventListener("click", async ()=>{
-    const btn = $("#btnExportar"); btn.disabled = true; btn.textContent = "Montando pacote…";
+  async function enviar(rota, opcoes){
+    const r = await fetch(rota, {credentials:"same-origin", ...opcoes});
+    const tipo = r.headers.get("Content-Type") || "";
+    const d = tipo.includes("application/json") ? await r.json().catch(()=>null) : null;
+    if(!r.ok) throw new Error((d && d.erro) || ("Falhou com código " + r.status + "."));
+    return d;
+  }
+
+  $("#btnPublicar").addEventListener("click", async ()=>{
+    const btn = $("#btnPublicar");
+    const original = btn.textContent;
+    btn.disabled = true;
     try{
-      const zip = new JSZip();
-
-      // catálogo novo
-      novas.forEach(n=>{
-        const nm = "p"+String(n.id).padStart(2,"0")+".jpg";
-        zip.file("img/catalogo/"+nm, n.full);
-        zip.file("img/catalogo/t/"+nm, n.thumb);
-      });
-      if(novas.length || removidas.size || Object.keys(edicoes).length)
-        zip.file("produtos.js", gerarProdutosJS());
-
-      // fotos das páginas + HTML alterado
-      const porPagina = {};
-      Object.entries(trocas).forEach(([chave, t])=>{
-        zip.file(t.nome, t.blob);
-        const [pagina, idx] = chave.split("|");
-        (porPagina[pagina] = porPagina[pagina] || []).push({idx:+idx, novo:t.nome});
-      });
-      for(const [pagina, mudancas] of Object.entries(porPagina)){
-        const html = await fetch(BASE+pagina, {cache:"no-store"}).then(r=>r.text());
-        const doc = new DOMParser().parseFromString(html, "text/html");
-        const imgs = [...doc.querySelectorAll("main img")];
-        mudancas.forEach(m=>{ if(imgs[m.idx]) imgs[m.idx].setAttribute("src", m.novo); });
-        zip.file(pagina, "<!DOCTYPE html>\n" + doc.documentElement.outerHTML);
+      // 1) fotos novas do catálogo
+      let feitas = 0;
+      for(const n of novas){
+        btn.textContent = "Enviando foto " + (++feitas) + " de " + novas.length + "…";
+        await enviar("/api/admin/foto?nome=" + encodeURIComponent("p"+n.id+".jpg"),
+                     {method:"POST", body:n.full});
+        await enviar("/api/admin/foto?nome=" + encodeURIComponent("t/p"+n.id+".jpg"),
+                     {method:"POST", body:n.thumb});
       }
 
-      // instruções
-      zip.file("COMO-PUBLICAR.txt",
-        "PACOTE GERADO EM " + new Date().toLocaleString("pt-BR") + "\n\n" +
-        "Copie o conteúdo deste ZIP para a raiz do site, mantendo as pastas.\n" +
-        "Os arquivos aqui SUBSTITUEM os que já existem com o mesmo nome.\n\n" +
-        "Resumo:\n" +
-        "  peças novas no catálogo: " + novas.length + "\n" +
-        "  peças removidas:         " + removidas.size + "\n" +
-        "  peças editadas:          " + Object.keys(edicoes).length + "\n" +
-        "  fotos de página trocadas:" + Object.keys(trocas).length + "\n\n" +
-        "Se usa GitHub: arraste estes arquivos para o repositório e faça commit.\n" +
-        "Depois de publicar, abra o site com Ctrl+F5 para furar o cache.\n");
+      // 2) fotos trocadas nas páginas
+      const mapaSlots = {};
+      const chaves = Object.keys(trocas);
+      let k = 0;
+      for(const chave of chaves){
+        btn.textContent = "Enviando foto de página " + (++k) + " de " + chaves.length + "…";
+        const t = trocas[chave];
+        const nome = "site/" + chave.replace("|","-").replace(".html","") + "-" + Date.now() + ".jpg";
+        await enviar("/api/admin/foto?nome=" + encodeURIComponent(nome),
+                     {method:"POST", body:t.blob});
+        mapaSlots[chave] = "/fotos/" + nome;
+      }
 
-      const blob = await zip.generateAsync({type:"blob"});
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "oomm-atualizacao-" + new Date().toISOString().slice(0,10) + ".zip";
-      a.click();
-      setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+      // 3) dados
+      btn.textContent = "Salvando catálogo…";
+      await enviar("/api/admin/catalogo", {
+        method:"PUT", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({categorias: CATEGORIAS, produtos: montarLista()})
+      });
+
+      if(chaves.length){
+        const anterior = await fetch("/api/admin/slots", {method:"PUT",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify(Object.assign({}, window.__slotsAtuais||{}, mapaSlots)),
+          credentials:"same-origin"});
+        if(!anterior.ok) throw new Error("Não consegui salvar as trocas das páginas.");
+        window.__slotsAtuais = Object.assign({}, window.__slotsAtuais||{}, mapaSlots);
+      }
+
+      msg($("#avisoModo"),
+        "<b>Publicado.</b> As alterações já estão no ar. Abra o site numa aba anônima "+
+        "(ou com Ctrl+F5) para ver — a aba normal pode mostrar a versão guardada em cache.", "ok");
+
+      // recarrega o estado a partir do que ficou salvo
+      novas.length = 0; removidas.clear();
+      Object.keys(edicoes).forEach(x=>delete edicoes[x]);
+      Object.keys(trocas).forEach(x=>delete trocas[x]);
+      await carregarCatalogo();
+    try{
+      const r = await fetch("/api/admin/slots-atuais", {credentials:"same-origin"});
+      if(r.ok) window.__slotsAtuais = await r.json();
+    }catch(e){ window.__slotsAtuais = {}; }
+      montarCatalogo(); montarSlots(); contar();
+      window.scrollTo({top:0, behavior:"smooth"});
+
     }catch(err){
-      alert("Falhou ao gerar o pacote: " + err.message);
+      msg($("#avisoModo"),
+        "<b>Não publiquei nada.</b> " + err.message +
+        "<br><br>Nenhuma alteração foi perdida: corrija o problema e clique em Publicar de novo.", "err");
+      window.scrollTo({top:0, behavior:"smooth"});
     }finally{
-      btn.textContent = "Gerar pacote para publicar"; contar();
+      btn.textContent = original; contar();
     }
   });
+
 })();
 </script>
 </body>
