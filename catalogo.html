@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-VM5P75HZSE"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-VM5P75HZSE');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catálogo · OOMM Studio · peças em impressão 3D</title>
+<meta name="description" content="Catálogo completo de peças em impressão 3D da OOMM Studio: chaveiros, displays, brindes, artigos para casa, educacionais, festas e religiosos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#33222A">
+<link rel="canonical" href="https://studiolab3d.com.br/catalogo.html">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="OOMM Studio">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:title" content="Catálogo · OOMM Studio">
+<meta property="og:description" content="Todas as peças que já saíram do estúdio, por categoria.">
+<meta property="og:url" content="https://studiolab3d.com.br/catalogo.html">
+<meta property="og:image" content="https://studiolab3d.com.br/img/og-image.jpg">
+</head>
+<body>
+<header class="nav">
+  <div class="wrap nav-in">
+    <a href="index.html" class="brand">OOMM<span class="dot">.</span>STUDIO <small>studio 3d</small></a>
+    <button class="menu-toggle" aria-label="Abrir menu" id="mt"><span></span></button>
+    <nav class="links" id="links">
+      <a href="index.html">Início</a>
+      <a href="catalogo.html" class="active">Catálogo</a>
+      <a href="corporativo.html">Brindes</a>
+      <a href="educacional.html">Eventos</a>
+      <a href="casa.html">Religiosos</a>
+      <a href="festas.html">Festas</a>
+      <a href="conecte.html">Conecte-se</a>
+      <a href="https://wa.me/5511992048512" class="btn btn-primary" target="_blank" rel="noopener">Orçamento</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <section class="cat-hero">
+    <div class="wrap">
+      <span class="eyebrow on-dark">Catálogo completo</span>
+      <h1>Tudo o que já saiu<br>do <em>estúdio</em>.</h1>
+      <p>Cada peça abaixo pode ser refeita na sua cor, no seu tamanho, com o seu nome ou a sua logo. Clique na foto para ver de perto — ou toque no <b style="color:#EE9CB2">+</b> para pedir direto no WhatsApp.</p>
+      <div class="cat-count"><span>Peças no catálogo</span> <b id="totalPecas">—</b></div>
+    </div>
+  </section>
+
+  <div class="cat-bar">
+    <div class="cat-bar-in" id="filtros" role="tablist" aria-label="Categorias"></div>
+  </div>
+
+  <section style="padding-top:44px">
+    <div class="wrap">
+      <div class="cat-grid" id="grade"></div>
+      <div class="pager" id="pager"></div>
+      <div class="pg-info" id="pgInfo"></div>
+    </div>
+  </section>
+
+  <section style="padding-top:0">
+    <div class="wrap">
+      <div class="cta-band">
+        <div class="t">
+          <h3>Achou a peça? O resto é rápido.</h3>
+          <p>Mande o código da peça no WhatsApp e devolvemos prazo, faixa de preço e as opções de cor e material.</p>
+        </div>
+        <a href="https://wa.me/5511992048512" target="_blank" rel="noopener" class="btn btn-primary btn-lg">Falar no WhatsApp</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- lightbox -->
+<div class="lb-ov" id="lb" role="dialog" aria-modal="true" aria-label="Detalhe da peça">
+  <div class="lb-box">
+    <button class="lb-close" id="lbClose" aria-label="Fechar">×</button>
+    <button class="lb-nav lb-prev" id="lbPrev" aria-label="Peça anterior">‹</button>
+    <button class="lb-nav lb-next" id="lbNext" aria-label="Próxima peça">›</button>
+    <div class="im"><img id="lbImg" src="" alt=""></div>
+    <div class="info">
+      <div class="cod" id="lbCod"></div>
+      <h3 id="lbNome"></h3>
+      <span class="tagc" id="lbCat" style="align-self:flex-start"></span>
+      <p>Produzimos sob encomenda. Dá para mudar cor, tamanho, material e adicionar nome, data ou logo. A partir de 1 unidade.</p>
+      <a id="lbWa" class="btn btn-primary btn-lg" href="#" target="_blank" rel="noopener">Pedir orçamento desta peça</a>
+    </div>
+  </div>
+</div>
+
+<footer class="ft">
+  <div class="wrap">
+    <div class="parceiros">
+      <h5>Nossos parceiros</h5>
+      <div class="parc-linha">
+        <a class="parc" href="https://pagbank.com.br" target="_blank" rel="noopener" aria-label="Pagamentos processados pelo PagBank">
+          <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="11" fill="#0FA958"/>
+            <path d="M8 16.5V8.2c0-.4.3-.7.7-.7h3.6c2.2 0 3.7 1.4 3.7 3.4s-1.5 3.5-3.7 3.5h-1.9v2.1c0 .4-.3.7-.7.7h-1c-.4 0-.7-.3-.7-.7z" fill="#fff"/>
+          </svg>
+          <span>PagBank<span class="rot" style="display:block">pagamento seguro</span></span>
+        </a>
+
+        <a class="parc" href="https://tiktok.com/@oommstudio" target="_blank" rel="noopener" aria-label="OOMM Studio no TikTok">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M16.5 3.2c.5 2 1.8 3.3 3.8 3.6v2.7c-1.4.1-2.7-.3-3.9-1.1v5.9c0 3.4-2.6 5.9-5.9 5.7-2.8-.2-5-2.5-5.1-5.3-.1-3.1 2.3-5.7 5.4-5.8v2.8c-1.4.1-2.5 1.2-2.5 2.7 0 1.5 1.2 2.7 2.7 2.7s2.6-1.2 2.6-2.8V3.2h2.9z" fill="#E9D9CE"/>
+          </svg>
+          <span>TikTok<span class="rot" style="display:block">@oommstudio</span></span>
+        </a>
+
+        <a class="parc" href="https://instagram.com/outofmymind_3d" target="_blank" rel="noopener" aria-label="OOMM Studio nas plataformas Meta">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="3" y="3" width="18" height="18" rx="5" stroke="#E9D9CE" stroke-width="1.8"/>
+            <circle cx="12" cy="12" r="4" stroke="#E9D9CE" stroke-width="1.8"/>
+            <circle cx="17.2" cy="6.8" r="1.2" fill="#E9D9CE"/>
+          </svg>
+          <span>Meta<span class="rot" style="display:block">Instagram &amp; Facebook</span></span>
+        </a>
+
+        <span class="parc-sep"></span>
+
+        <span class="parc" aria-label="Aceitamos cartões Visa e Mastercard">
+          <svg width="34" height="22" viewBox="0 0 34 22" aria-hidden="true">
+            <rect width="34" height="22" rx="3.5" fill="#1A1F71"/>
+            <text x="17" y="15" font-family="Inter,Arial,sans-serif" font-size="9.5" font-weight="700"
+                  fill="#fff" text-anchor="middle" letter-spacing=".6">VISA</text>
+          </svg>
+          <svg width="34" height="22" viewBox="0 0 34 22" aria-hidden="true">
+            <rect width="34" height="22" rx="3.5" fill="#16181C"/>
+            <circle cx="14" cy="11" r="6.2" fill="#EB001B"/>
+            <circle cx="20" cy="11" r="6.2" fill="#F79E1B" fill-opacity=".9"/>
+          </svg>
+          <span class="rot" style="letter-spacing:.04em">Aceitamos Visa e Mastercard</span>
+        </span>
+      </div>
+      <p class="parc-nota">Pagamentos processados pelo PagBank · Pix, cartão em até 12x e boleto · Nota fiscal emitida em todo pedido.</p>
+    </div>
+    <div class="ft-top">
+      <div>
+        <div class="brand">OOMM<span style="color:var(--teal)">.</span>STUDIO <small class="mono">studio 3d</small></div>
+        <p class="desc">Brindes corporativos e peças personalizadas em impressão 3D, sob medida para empresas, escolas, casa e festas. São Paulo · envio para todo o Brasil.</p>
+      </div>
+      <div>
+        <h5>Linhas</h5>
+        <a href="catalogo.html">Catálogo completo</a>
+        <a href="corporativo.html">Brindes sob encomenda</a>
+        <a href="educacional.html">Kits para eventos</a>
+        <a href="casa.html">Artigos religiosos</a>
+        <a href="festas.html">Festas &amp; celebrações</a>
+      </div>
+      <div>
+        <h5>Contato &amp; redes</h5>
+        <a href="https://wa.me/5511992048512" target="_blank" rel="noopener">WhatsApp · (11) 99204-8512</a>
+        <a href="mailto:comercial@studiolab3d.com.br">comercial@studiolab3d.com.br</a>
+        <a href="https://instagram.com/outofmymind_3d" target="_blank" rel="noopener">Instagram · @outofmymind_3d</a>
+        <a href="https://tiktok.com/@oommstudio" target="_blank" rel="noopener">TikTok · @oommstudio</a>
+        <a href="https://br.shp.ee/fXcUByTB" target="_blank" rel="noopener">Loja Shopee</a>
+        <a href="https://meli.la/2SiPcbK" target="_blank" rel="noopener">Loja Mercado Livre</a>
+      </div>
+    </div>
+    <div class="ft-bot">
+      <span>© 2026 OOMM Studio · studiolab3d.com.br</span>
+      <span>Do conceito ao detalhe.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+<script src="produtos.js"></script>
+<script>
+(function(){
+  const WA = "https://wa.me/5511992048512?text=";
+  const POR_PAGINA = 9;
+  const grade = document.getElementById("grade");
+  const barra = document.getElementById("filtros");
+  const pager = document.getElementById("pager");
+  const pgInfo = document.getElementById("pgInfo");
+  const nomeCat = Object.fromEntries(CATEGORIAS.map(c=>[c.id,c.nome]));
+  const linkWa = it => WA + encodeURIComponent(
+    "Olá! Quero pedir a peça " + it.cod + (it.nome!=="Peça sob encomenda" ? " ("+it.nome+")" : "") +
+    " que vi no catálogo do site."
+  );
+
+  const itens = PRODUTOS.map(p=>({
+    cod: "OOMM-" + String(p.i).padStart(3,"0"),
+    nome: p.n && p.n.trim() ? p.n.trim() : "Peça sob encomenda",
+    cat: p.c,
+    thumb: "img/catalogo/t/p" + String(p.i).padStart(2,"0") + ".jpg",
+    full:  "img/catalogo/p"   + String(p.i).padStart(2,"0") + ".jpg"
+  }));
+  document.getElementById("totalPecas").textContent = itens.length;
+
+  let catAtual = "todos", pagina = 1, visiveis = [];
+
+  // ---- filtros
+  CATEGORIAS.forEach(c=>{
+    const n = c.id==="todos" ? itens.length : itens.filter(i=>i.cat===c.id).length;
+    if(n===0 && c.id!=="todos") return;
+    const b = document.createElement("button");
+    b.className="chipf"; b.type="button"; b.role="tab";
+    b.setAttribute("aria-selected", c.id===catAtual);
+    b.dataset.cat=c.id;
+    b.innerHTML = c.nome + '<span class="qt">'+n+'</span>';
+    b.addEventListener("click", ()=>{ catAtual=c.id; pagina=1; sincronizaHash(); render(); });
+    barra.appendChild(b);
+  });
+
+  function sincronizaHash(){
+    history.replaceState(null,"", "#"+catAtual+(pagina>1?("/"+pagina):""));
+  }
+  function leHash(){
+    const h = location.hash.replace("#","");
+    if(!h) return;
+    const [c,p] = h.split("/");
+    if(CATEGORIAS.some(x=>x.id===c)) catAtual=c;
+    if(p && !isNaN(+p)) pagina = Math.max(1, +p);
+  }
+
+  function render(){
+    visiveis = catAtual==="todos" ? itens : itens.filter(i=>i.cat===catAtual);
+    const totalPg = Math.max(1, Math.ceil(visiveis.length/POR_PAGINA));
+    if(pagina>totalPg) pagina = totalPg;
+
+    [...barra.children].forEach(b=>b.setAttribute("aria-selected", b.dataset.cat===catAtual));
+
+    const ini = (pagina-1)*POR_PAGINA;
+    const lote = visiveis.slice(ini, ini+POR_PAGINA);
+
+    grade.innerHTML = "";
+    if(!lote.length){
+      grade.innerHTML = '<div class="cat-empty">Nada nesta categoria ainda. Volte em breve — o estúdio não para.</div>';
+    }
+    lote.forEach((it, k)=>{
+      const el = document.createElement("button");
+      el.className="cat-card"; el.type="button";
+      el.style.animationDelay = (k*45)+"ms";
+      el.setAttribute("aria-label","Ver "+it.nome+" "+it.cod);
+      el.innerHTML =
+        '<div class="sh"><img src="'+it.thumb+'" loading="lazy" decoding="async" alt="'+it.nome+' em impressão 3D — '+it.cod+'">'+
+          '<span class="cat-add" role="link" tabindex="0" aria-label="Pedir a peça '+it.cod+' no WhatsApp">'+
+            '<span class="tip">Pedir no WhatsApp</span>+</span>'+
+        '</div>'+
+        '<div class="meta"><div><div class="nm">'+it.nome+'</div><div class="cod">'+it.cod+'</div></div>'+
+        '<span class="tagc">'+(nomeCat[it.cat]||"peça")+'</span></div>';
+      const mais = el.querySelector(".cat-add");
+      function pedir(e){ e.stopPropagation(); e.preventDefault(); window.open(linkWa(it), "_blank", "noopener"); }
+      mais.addEventListener("click", pedir);
+      mais.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" ") pedir(e); });
+      el.addEventListener("click", ()=>abrir(ini+k));
+      grade.appendChild(el);
+    });
+
+    // paginação
+    pager.innerHTML="";
+    if(totalPg>1){
+      pager.appendChild(btn("‹ Anterior", ()=>ir(pagina-1), pagina===1));
+      numeros(totalPg).forEach(n=>{
+        if(n==="…"){ const s=document.createElement("span"); s.className="sep"; s.textContent="…"; pager.appendChild(s); return; }
+        const b = btn(String(n), ()=>ir(n), false);
+        if(n===pagina) b.setAttribute("aria-current","true");
+        pager.appendChild(b);
+      });
+      pager.appendChild(btn("Próxima ›", ()=>ir(pagina+1), pagina===totalPg));
+    }
+    pgInfo.textContent = visiveis.length
+      ? "Mostrando "+(ini+1)+"–"+Math.min(ini+POR_PAGINA, visiveis.length)+" de "+visiveis.length+" peças"+(catAtual!=="todos"?(" em "+nomeCat[catAtual]):"")
+      : "";
+    sincronizaHash();
+  }
+
+  function numeros(total){
+    if(total<=7) return Array.from({length:total},(_,i)=>i+1);
+    const s=new Set([1,total,pagina,pagina-1,pagina+1]);
+    const arr=[...s].filter(n=>n>=1&&n<=total).sort((a,b)=>a-b);
+    const out=[];
+    arr.forEach((n,idx)=>{ if(idx && n-arr[idx-1]>1) out.push("…"); out.push(n); });
+    return out;
+  }
+  function btn(txt, fn, disabled){
+    const b=document.createElement("button"); b.type="button"; b.textContent=txt; b.disabled=!!disabled;
+    b.addEventListener("click",fn); return b;
+  }
+  function ir(n){
+    pagina=n; render();
+    document.querySelector(".cat-bar").scrollIntoView({behavior:"smooth", block:"start"});
+  }
+
+  // ---- lightbox
+  const lb=document.getElementById("lb");
+  let idx=0;
+  function abrir(i){
+    idx=i; const it=visiveis[idx]; if(!it) return;
+    document.getElementById("lbImg").src=it.full;
+    document.getElementById("lbImg").alt=it.nome+" — "+it.cod;
+    document.getElementById("lbCod").textContent=it.cod;
+    document.getElementById("lbNome").textContent=it.nome;
+    document.getElementById("lbCat").textContent=nomeCat[it.cat]||"peça";
+    document.getElementById("lbWa").href = linkWa(it);
+    lb.classList.add("open"); document.body.style.overflow="hidden";
+  }
+  function fechar(){ lb.classList.remove("open"); document.body.style.overflow=""; }
+  function passo(d){ const n=(idx+d+visiveis.length)%visiveis.length; abrir(n); }
+  document.getElementById("lbClose").addEventListener("click",fechar);
+  document.getElementById("lbNext").addEventListener("click",e=>{e.stopPropagation();passo(1);});
+  document.getElementById("lbPrev").addEventListener("click",e=>{e.stopPropagation();passo(-1);});
+  lb.addEventListener("click",e=>{ if(e.target===lb) fechar(); });
+  document.addEventListener("keydown",e=>{
+    if(!lb.classList.contains("open")) return;
+    if(e.key==="Escape") fechar();
+    if(e.key==="ArrowRight") passo(1);
+    if(e.key==="ArrowLeft") passo(-1);
+  });
+
+  leHash(); render();
+})();
+</script>
+</body>
+</html>
