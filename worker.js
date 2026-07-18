@@ -31,31 +31,64 @@ export default {
       return json({ erro: String(erro && erro.message || erro) }, 500);
     }
 
-    // Tudo o mais é arquivo do site. Páginas HTML passam pelo reescritor,
-    // que aplica as trocas de foto feitas no admin.
+    // Tudo o mais é arquivo do site. Páginas HTML passam pelo reescritor, que
+    // aplica o que foi editado no painel: fotos trocadas, textos, cards novos
+    // e cards escondidos.
     const resposta = await env.ASSETS.fetch(request);
     const tipo = resposta.headers.get("Content-Type") || "";
     if (!tipo.includes("text/html")) return resposta;
 
-    const trocas = await lerJSON(env, "slots", null);
-    if (!trocas) return resposta;
+    const edicoes = await lerJSON(env, "paginas", null);
+    if (!edicoes) return resposta;
 
     const pagina = nomeDaPagina(p);
-    const doPagina = Object.entries(trocas)
-      .filter(([k]) => k.startsWith(pagina + "|"))
-      .map(([k, v]) => [Number(k.split("|")[1]), v]);
-    if (!doPagina.length) return resposta;
+    const fotos     = filtrarPorPagina(edicoes.fotos,  pagina);   // {n: url}
+    const textos    = edicoes.textos  && edicoes.textos[pagina]  || null;  // {sel: {n: txt}}
+    const ocultos   = new Set((edicoes.ocultos && edicoes.ocultos[pagina]) || []);
+    const novos     = (edicoes.novos && edicoes.novos[pagina]) || [];
 
-    const mapa = new Map(doPagina);
-    let n = -1;
-    return new HTMLRewriter()
-      .on("main img", {
-        element(el) {
-          n++;
-          if (mapa.has(n)) el.setAttribute("src", mapa.get(n));
-        }
-      })
-      .transform(resposta);
+    if (!Object.keys(fotos).length && !textos && !ocultos.size && !novos.length)
+      return resposta;
+
+    let rw = new HTMLRewriter();
+
+    // fotos trocadas: n-ésima <img> dentro de <main>
+    if (Object.keys(fotos).length) {
+      let i = -1;
+      rw = rw.on("main img", { element(el) { i++; if (fotos[i]) el.setAttribute("src", fotos[i]); } });
+    }
+
+    // textos: para cada seletor, a n-ésima ocorrência
+    if (textos) {
+      for (const sel of Object.keys(textos)) {
+        const mapa = textos[sel];
+        let i = -1;
+        rw = rw.on(sel, {
+          element(el) {
+            i++;
+            const t = mapa[i];
+            if (typeof t === "string" && t.length) el.setInnerContent(t, { html: false });
+          }
+        });
+      }
+    }
+
+    // cards escondidos: n-ésimo <article class="prod">
+    if (ocultos.size) {
+      let i = -1;
+      rw = rw.on("main article.prod", { element(el) { i++; if (ocultos.has(i)) el.remove(); } });
+    }
+
+    // cards novos: acrescentados ao fim da primeira grade de produtos
+    if (novos.length) {
+      let feito = false;
+      const html = novos.map(cardHTML).join("");
+      rw = rw.on("main .prod-grid", {
+        element(el) { if (!feito) { feito = true; el.append(html, { html: true }); } }
+      });
+    }
+
+    return rw.transform(resposta);
   }
 };
 
@@ -93,13 +126,19 @@ async function rotaAdmin(request, env, url) {
     return json({ ok: true, pecas: corpo.produtos.length });
   }
 
-  if (p === "/api/admin/slots-atuais" && request.method === "GET") {
-    return json(await lerJSON(env, "slots", {}));
+  if (p === "/api/admin/paginas" && request.method === "GET") {
+    return json(await lerJSON(env, "paginas", { fotos:{}, textos:{}, ocultos:{}, novos:{} }));
   }
 
-  if (p === "/api/admin/slots" && request.method === "PUT") {
+  if (p === "/api/admin/paginas" && request.method === "PUT") {
     const corpo = await request.json();
-    await env.DADOS.put("slots", JSON.stringify(corpo || {}));
+    if (!corpo || typeof corpo !== "object") return json({ erro: "Formato inválido." }, 400);
+    await env.DADOS.put("paginas", JSON.stringify({
+      fotos:   corpo.fotos   || {},
+      textos:  corpo.textos  || {},
+      ocultos: corpo.ocultos || {},
+      novos:   corpo.novos   || {}
+    }));
     return json({ ok: true });
   }
 
@@ -164,6 +203,30 @@ async function lerJSON(env, chave, padrao) {
     const txt = await env.DADOS.get(chave);
     return txt ? JSON.parse(txt) : padrao;
   } catch { return padrao; }
+}
+
+function filtrarPorPagina(fotos, pagina) {
+  const saida = {};
+  for (const [k, v] of Object.entries(fotos || {})) {
+    const [pag, n] = k.split("|");
+    if (pag === pagina) saida[Number(n)] = v;
+  }
+  return saida;
+}
+
+function esc(t) {
+  return String(t == null ? "" : t)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function cardHTML(c) {
+  const chips = (c.chips || []).filter(Boolean).slice(0, 3)
+    .map(x => '<span class="chip">' + esc(x) + '</span>').join("");
+  return '<article class="prod">' +
+    '<div class="ph"><img src="' + esc(c.img) + '" loading="lazy" alt="' + esc(c.titulo) + '"></div>' +
+    '<div class="body"><h4>' + esc(c.titulo) + '</h4><p>' + esc(c.desc || "") + '</p>' +
+    (chips ? '<div class="spec">' + chips + '</div>' : '') +
+    '</div></article>';
 }
 
 function nomeDaPagina(caminho) {

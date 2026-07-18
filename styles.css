@@ -321,3 +321,36 @@
     .parc-sep{display:none}
     .parc{padding:9px 12px; font-size:13px}
   }
+
+  /* ================= SELOS DO CATÁLOGO ================= */
+  .selo{position:absolute; top:10px; left:10px; z-index:3; color:#fff;
+    font-size:11px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+    padding:5px 9px; border-radius:7px; box-shadow:0 3px 10px rgba(0,0,0,.22)}
+  .selo-mais-vendidos{background:#A63E60}
+  .selo-preco-baixo{background:#1F8A54}
+  .selo-destaque{background:#B0863F}
+  .selo-personalizado{background:#5B4B8A}
+  .chipf.selo-f[aria-selected="true"]{background:var(--dark); border-color:var(--dark)}
+  .filtro-sep{flex:none; width:1px; align-self:stretch; background:var(--line); margin:2px 6px}
+  @media (max-width:640px){ .selo{font-size:10px; padding:4px 7px; top:8px; left:8px} }
+
+  /* ================= PAINEL: textos e cards ================= */
+  .txt-linha{background:#fff;border:1px solid #E3D6C9;border-radius:12px;padding:13px 15px;margin-bottom:10px}
+  .txt-linha.mudou{border-color:#1F8A54;box-shadow:0 0 0 2px rgba(31,138,84,.14)}
+  .txt-linha label{display:block;font-size:12px;font-weight:600;letter-spacing:.05em;
+    text-transform:uppercase;color:#5C4A52;margin:0 0 6px}
+  .txt-linha textarea{width:100%;font-family:inherit;font-size:15px;line-height:1.5;padding:9px 11px;
+    border:1px solid #E3D6C9;border-radius:8px;resize:vertical;min-height:44px;color:#2A2126}
+  .txt-linha .orig{font-size:12.5px;color:#8A7680;margin:6px 0 0}
+  .card-novo{background:#fff;border:1px solid #E3D6C9;border-radius:12px;padding:15px;margin-bottom:11px;
+    display:grid;grid-template-columns:120px 1fr;gap:15px;align-items:start}
+  .card-novo.pronto{border-color:#1F8A54;box-shadow:0 0 0 2px rgba(31,138,84,.14)}
+  .card-novo .foto{width:120px;height:120px;border-radius:9px;background:#EDE0D4;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:#5C4A52;text-align:center;padding:8px}
+  .card-novo .foto img{width:100%;height:100%;object-fit:cover}
+  .card-novo .campos{display:flex;flex-direction:column;gap:8px}
+  .card-existente{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #E3D6C9;
+    border-radius:10px;padding:10px 14px;margin-bottom:8px;font-size:15px}
+  .card-existente.off{opacity:.5;text-decoration:line-through}
+  .card-existente input{width:auto;margin:0}
+  @media (max-width:640px){ .card-novo{grid-template-columns:1fr} .card-novo .foto{width:100%;height:150px} }

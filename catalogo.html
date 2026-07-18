@@ -201,9 +201,16 @@
     cod: "OOMM-" + String(p.i).padStart(3,"0"),
     nome: p.n && p.n.trim() ? p.n.trim() : "Peça sob encomenda",
     cat: p.c,
+    selo: p.s || "",
     thumb: p.r ? "/fotos/t/p"+p.i+".jpg" : "img/catalogo/t/p"+pad2(p.i)+".jpg",
     full:  p.r ? "/fotos/p"+p.i+".jpg"   : "img/catalogo/p"+pad2(p.i)+".jpg"
   });
+
+  const SELOS = {
+    "mais-vendidos":"Mais vendidos", "preco-baixo":"Preço baixo",
+    "destaque":"Destaque do mês",    "personalizado":"Personalizado"
+  };
+  let seloAtual = "";
 
   let itens = PRODUTOS.map(monta);   // o que veio no repositório, para não ficar vazio
   let catAtual = "todos", pagina = 1, visiveis = [];
@@ -239,6 +246,22 @@
       b.addEventListener("click", ()=>{ catAtual=c.id; pagina=1; sincronizaHash(); render(); });
       barra.appendChild(b);
     });
+
+    // chips de selo — só aparecem se houver peças marcadas
+    const comSelo = Object.keys(SELOS).filter(id => itens.some(i=>i.selo===id));
+    if(comSelo.length){
+      const sep=document.createElement("span"); sep.className="filtro-sep"; barra.appendChild(sep);
+      comSelo.forEach(id=>{
+        const b=document.createElement("button");
+        b.className="chipf selo-f"; b.type="button";
+        b.setAttribute("aria-selected", seloAtual===id);
+        b.innerHTML = SELOS[id] + '<span class="qt">'+itens.filter(i=>i.selo===id).length+'</span>';
+        b.addEventListener("click", ()=>{
+          seloAtual = (seloAtual===id) ? "" : id; pagina=1; render();
+        });
+        barra.appendChild(b);
+      });
+    }
   }
   montarFiltros();
 
@@ -254,11 +277,12 @@
   }
 
   function render(){
-    visiveis = catAtual==="todos" ? itens : itens.filter(i=>i.cat===catAtual);
+    visiveis = catAtual==="todos" ? itens.slice() : itens.filter(i=>i.cat===catAtual);
+    if(seloAtual) visiveis = visiveis.filter(i=>i.selo===seloAtual);
     const totalPg = Math.max(1, Math.ceil(visiveis.length/POR_PAGINA));
     if(pagina>totalPg) pagina = totalPg;
 
-    [...barra.children].forEach(b=>b.setAttribute("aria-selected", b.dataset.cat===catAtual));
+    montarFiltros();
 
     const ini = (pagina-1)*POR_PAGINA;
     const lote = visiveis.slice(ini, ini+POR_PAGINA);
@@ -274,6 +298,7 @@
       el.setAttribute("aria-label","Ver "+it.nome+" "+it.cod);
       el.innerHTML =
         '<div class="sh"><img src="'+it.thumb+'" loading="lazy" decoding="async" alt="'+it.nome+' em impressão 3D — '+it.cod+'">'+
+          (it.selo && SELOS[it.selo] ? '<span class="selo selo-'+it.selo+'">'+SELOS[it.selo]+'</span>' : '')+
           '<span class="cat-add" role="link" tabindex="0" aria-label="Pedir a peça '+it.cod+' no WhatsApp">'+
             '<span class="tip">Pedir no WhatsApp</span>+</span>'+
         '</div>'+
@@ -331,7 +356,8 @@
     document.getElementById("lbImg").alt=it.nome+" — "+it.cod;
     document.getElementById("lbCod").textContent=it.cod;
     document.getElementById("lbNome").textContent=it.nome;
-    document.getElementById("lbCat").textContent=nomeCat[it.cat]||"peça";
+    document.getElementById("lbCat").textContent =
+      (it.selo && SELOS[it.selo] ? SELOS[it.selo]+" · " : "") + (nomeCat[it.cat]||"peça");
     document.getElementById("lbWa").href = linkWa(it);
     lb.classList.add("open"); document.body.style.overflow="hidden";
   }
