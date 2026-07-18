@@ -1,7 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /admin/
 
 Sitemap: https://studiolab3d.com.br/sitemap.xml
-
-Disallow: /editor-catalogo.html
-Disallow: /admin/
