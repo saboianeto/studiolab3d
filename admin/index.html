@@ -182,12 +182,21 @@
   const msg = (el, texto, tipo) => { el.innerHTML = texto ? '<div class="msg '+tipo+'">'+texto+'</div>' : ""; };
 
   /* ================= LOGIN ================= */
+  // Detecta se existe backend. Num site estático a resposta pode ser 404, 405,
+  // 403 ou uma página HTML de erro — nenhuma delas é uma API. Tudo isso vira SEM_API.
   async function api(rota, corpo){
-    const r = await fetch(rota, {method:"POST", headers:{"Content-Type":"application/json"},
-                                 body:JSON.stringify(corpo), credentials:"same-origin"});
-    if(r.status === 404) throw new Error("SEM_API");
-    const j = await r.json().catch(()=>({}));
-    if(!r.ok) throw new Error(j.erro || "Falhou.");
+    let r;
+    try{
+      r = await fetch(rota, {method:"POST", headers:{"Content-Type":"application/json"},
+                             body:JSON.stringify(corpo), credentials:"same-origin"});
+    }catch(e){
+      throw new Error("SEM_API");            // rede, CORS ou servidor mudo
+    }
+    const tipo = r.headers.get("Content-Type") || "";
+    if(!tipo.includes("application/json")) throw new Error("SEM_API");   // devolveu HTML, não API
+    let j = null;
+    try{ j = await r.json(); }catch(e){ throw new Error("SEM_API"); }
+    if(!r.ok) throw new Error(j && j.erro ? j.erro : "Não foi possível enviar o código.");
     return j;
   }
 
@@ -207,12 +216,18 @@
       if(err.message === "SEM_API"){
         email = e;
         msg($("#msgLogin"),
-          "<b>Não há servidor de e-mail conectado.</b><br>"+
-          "Este site é estático (GitHub Pages), então não existe nada aqui capaz de enviar um código "+
-          "nem de guardar o que você subir. Entrando em <b>modo local</b>: o painel funciona por inteiro, "+
-          "as fotos são processadas no seu computador e no fim você baixa um pacote pronto para publicar. "+
-          "Leia o arquivo <code>LEIA-ME-ADMIN.md</code> para ligar o login por e-mail de verdade.","warn");
-        setTimeout(()=>entrar(false), 2600);
+          "<b>Não há servidor de e-mail conectado a este site.</b><br><br>"+
+          "O site está no GitHub Pages, que só entrega arquivos — não existe nada aqui capaz de "+
+          "enviar um código nem de guardar o que você subir. Isso não é defeito da página: é o "+
+          "limite da hospedagem.<br><br>"+
+          "O painel funciona por inteiro em <b>modo local</b>: as fotos são processadas no seu "+
+          "próprio computador e no fim você baixa um pacote pronto para publicar. Nada sai daqui.<br><br>"+
+          "Para ligar o login por e-mail de verdade, veja <code>LEIA-ME-ADMIN.md</code>.","warn");
+        const b = document.createElement("button");
+        b.className = "pri"; b.style.cssText = "width:100%;margin-top:14px";
+        b.textContent = "Entrar em modo local";
+        b.onclick = ()=>entrar(false);
+        $("#msgLogin").appendChild(b);
       } else {
         msg($("#msgLogin"), err.message, "err");
       }
@@ -226,7 +241,7 @@
     if(c.length !== 6){ msg($("#msgLogin"),"O código tem 6 dígitos.","err"); return; }
     $("#btnEntrar").disabled = true;
     try{ await api("/api/auth/verify", {email, codigo:c}); entrar(true); }
-    catch(err){ msg($("#msgLogin"), err.message === "SEM_API" ? "Servidor indisponível." : err.message, "err"); }
+    catch(err){ msg($("#msgLogin"), err.message === "SEM_API" ? "O servidor parou de responder. Recarregue a página." : err.message, "err"); }
     finally{ $("#btnEntrar").disabled = false; }
   });
 
