@@ -11,7 +11,7 @@
     { "binding": "FOTOS", "bucket_name": "oomm-fotos" }
   ],
   "kv_namespaces": [
-    { "binding": "DADOS", "id": "COLE_AQUI_O_ID_DO_KV" }
+    { "binding": "DADOS", "id": "116a109c576d44aabcda1f9431592bd1" }
   ],
   "observability": { "enabled": true }
 }
