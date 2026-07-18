@@ -195,29 +195,52 @@
     " que vi no catálogo do site."
   );
 
-  const itens = PRODUTOS.map(p=>({
+  // r = 1 -> foto enviada pelo painel (fica no R2). Sem r -> foto do repositório.
+  const pad2 = n => String(n).padStart(2,"0");
+  const monta = p => ({
     cod: "OOMM-" + String(p.i).padStart(3,"0"),
     nome: p.n && p.n.trim() ? p.n.trim() : "Peça sob encomenda",
     cat: p.c,
-    thumb: "img/catalogo/t/p" + String(p.i).padStart(2,"0") + ".jpg",
-    full:  "img/catalogo/p"   + String(p.i).padStart(2,"0") + ".jpg"
-  }));
-  document.getElementById("totalPecas").textContent = itens.length;
+    thumb: p.r ? "/fotos/t/p"+p.i+".jpg" : "img/catalogo/t/p"+pad2(p.i)+".jpg",
+    full:  p.r ? "/fotos/p"+p.i+".jpg"   : "img/catalogo/p"+pad2(p.i)+".jpg"
+  });
 
+  let itens = PRODUTOS.map(monta);   // o que veio no repositório, para não ficar vazio
   let catAtual = "todos", pagina = 1, visiveis = [];
 
+  // Busca a versão viva. Se a API não responder, segue com a do repositório —
+  // o catálogo nunca fica em branco por causa de rede.
+  async function carregarDaApi(){
+    try{
+      const r = await fetch("/api/catalogo", {cache:"no-store"});
+      if(!r.ok) return;
+      const d = await r.json();
+      if(!d || !Array.isArray(d.produtos) || !d.produtos.length) return;
+      if(Array.isArray(d.categorias) && d.categorias.length){
+        CATEGORIAS.length = 0; d.categorias.forEach(c=>CATEGORIAS.push(c));
+      }
+      itens = d.produtos.map(monta);
+      montarFiltros(); render();
+    }catch(e){ /* silêncio: a versão local já está na tela */ }
+  }
+
   // ---- filtros
-  CATEGORIAS.forEach(c=>{
-    const n = c.id==="todos" ? itens.length : itens.filter(i=>i.cat===c.id).length;
-    if(n===0 && c.id!=="todos") return;
-    const b = document.createElement("button");
-    b.className="chipf"; b.type="button"; b.role="tab";
-    b.setAttribute("aria-selected", c.id===catAtual);
-    b.dataset.cat=c.id;
-    b.innerHTML = c.nome + '<span class="qt">'+n+'</span>';
-    b.addEventListener("click", ()=>{ catAtual=c.id; pagina=1; sincronizaHash(); render(); });
-    barra.appendChild(b);
-  });
+  function montarFiltros(){
+    barra.innerHTML = "";
+    document.getElementById("totalPecas").textContent = itens.length;
+    CATEGORIAS.forEach(c=>{
+      const n = c.id==="todos" ? itens.length : itens.filter(i=>i.cat===c.id).length;
+      if(n===0 && c.id!=="todos") return;
+      const b = document.createElement("button");
+      b.className="chipf"; b.type="button"; b.role="tab";
+      b.setAttribute("aria-selected", c.id===catAtual);
+      b.dataset.cat=c.id;
+      b.innerHTML = c.nome + '<span class="qt">'+n+'</span>';
+      b.addEventListener("click", ()=>{ catAtual=c.id; pagina=1; sincronizaHash(); render(); });
+      barra.appendChild(b);
+    });
+  }
+  montarFiltros();
 
   function sincronizaHash(){
     history.replaceState(null,"", "#"+catAtual+(pagina>1?("/"+pagina):""));
@@ -325,7 +348,7 @@
     if(e.key==="ArrowLeft") passo(-1);
   });
 
-  leHash(); render();
+  leHash(); render(); carregarDaApi();
 })();
 </script>
 </body>

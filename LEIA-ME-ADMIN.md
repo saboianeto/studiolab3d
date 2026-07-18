@@ -1,129 +1,104 @@
-# Login por código de e-mail — passo a passo
+# Painel administrativo — publicação direta
 
-## O caminho mudou (para melhor)
+## O que mudou
 
-Eu tinha escrito um backend próprio para gerar e enviar o código. **Jogue fora.**
-A Cloudflare já tem isso pronto e sem código: chama-se **Cloudflare Access**,
-com login por **One-time PIN**. Você cadastra o e-mail numa regra e acabou.
+Antes o painel gerava um ZIP e alguém subia os arquivos no GitHub na mão.
+Agora ele **publica direto**: a foto vai para o armazenamento da Cloudflare e a
+lista de peças para o banco de chaves. O site lê de lá na hora seguinte.
 
-Menos peça para configurar, menos coisa para quebrar, nenhuma chave de API
-guardada por aí. Por isso removi a pasta `functions/` do projeto.
+Quem cadastra não precisa saber o que é GitHub, ZIP ou commit. Abre
+`studiolab3d.com.br/admin/`, entra com o código do e-mail, arrasta a foto,
+escolhe a categoria e clica em **Publicar no site**.
 
-Tempo total: cerca de 40 minutos de trabalho, mais a espera do DNS.
-Custo: zero. Tudo cabe no plano gratuito.
-
----
-
-## PARTE 1 — Levar o domínio para a Cloudflare
-
-O Access só funciona em domínios cujo DNS está na Cloudflare. Este passo é
-obrigatório e é o único que envolve espera.
-
-1. Crie conta em **dash.cloudflare.com**.
-2. **Add a site** → digite `studiolab3d.com.br` → escolha o plano **Free**.
-3. A Cloudflare importa seus registros DNS atuais. **Confira antes de seguir**
-   que estão lá os quatro registros A do GitHub:
-   `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`
-   e o CNAME de `www` apontando para `saboianeto.github.io`.
-   Faltou algum? Adicione na mão agora.
-4. A Cloudflare mostra **dois nameservers** (algo como `xxx.ns.cloudflare.com`).
-5. Vá no site onde você registrou o domínio (Registro.br, GoDaddy, onde for),
-   procure **servidores DNS** ou **nameservers**, e substitua os que estão lá
-   pelos dois da Cloudflare.
-6. Espere. Costuma levar de 15 minutos a algumas horas — o limite é 24h.
-   A Cloudflare manda e-mail quando reconhece.
-
-**Enquanto espera, o site continua no ar normalmente.** Não quebra nada.
+Para isso funcionar, faltam três configurações de uma vez só. São 15 minutos.
 
 ---
 
-## PARTE 2 — Trocar GitHub Pages por Cloudflare Pages
+## 1. Criar o bucket das fotos (R2)
 
-Dá para manter o GitHub Pages e só colocar a Cloudflare na frente, mas isso
-tem uma armadilha conhecida: se o modo de SSL ficar em "Flexible", o site entra
-em **loop infinito de redirecionamento** e para de abrir. Publicar direto pelo
-Cloudflare Pages evita o problema inteiro. É o caminho mais curto.
+1. Painel da Cloudflare → **R2** → **Create bucket**
+2. Nome: **`oomm-fotos`** (exatamente assim)
+3. Location: **Automatic**. Criar.
 
-1. No painel da Cloudflare: **Workers & Pages → Create → Pages → Connect to Git**.
-2. Autorize o GitHub e escolha o repositório do site.
-3. Configuração da build:
-   - Framework preset: **None**
-   - Build command: **deixe vazio**
-   - Build output directory: **/**
-4. **Save and Deploy**. Em um ou dois minutos sai um endereço `.pages.dev`.
-   Abra e confira se o site está inteiro.
-5. No projeto: **Custom domains → Set up a custom domain** →
-   `studiolab3d.com.br`. Repita para `www.studiolab3d.com.br`.
-6. **Passo que não pode ser esquecido:** volte ao GitHub →
-   **Settings → Pages → Custom domain → Remove**.
-   Se os dois ficarem disputando o mesmo domínio, o site fica instável.
+Plano gratuito cobre 10 GB. As fotos do catálogo somam alguns megabytes.
 
-O HTTPS passa a ser da Cloudflare, automático. O `Enforce HTTPS` do GitHub
-deixa de importar.
+## 2. Criar o banco da lista de peças (KV)
 
----
+1. **Storage & Databases → KV** → **Create a namespace**
+2. Nome: **`oomm-dados`**
+3. Depois de criar, **copie o ID** que aparece na lista
 
-## PARTE 3 — Ligar o login por código
+## 3. Ligar os dois ao Worker
 
-Aqui está o que você pediu, e são cinco minutos.
+Abra o arquivo **`wrangler.jsonc`** no repositório e troque
+`COLE_AQUI_O_ID_DO_KV` pelo ID que você copiou. Salve e faça commit.
 
-1. No menu lateral da Cloudflare, abra **Zero Trust**.
-2. Escolha um nome de time (ex.: `oommstudio`). Ele vira o endereço da tela de
-   login: `oommstudio.cloudflareaccess.com`. Selecione o plano **Free**.
-3. **Access → Applications → Add an application → Self-hosted**.
-4. Preencha:
-   - Application name: `Admin OOMM`
-   - Session duration: `24 hours` (quanto tempo antes de pedir código de novo)
-   - Subdomain: deixe vazio · Domain: `studiolab3d.com.br` · **Path: `admin`**
-5. Em **Identity providers**, o **One-time PIN** já vem ligado. Não mexa.
-6. **Next**. Agora a regra de quem entra:
-   - Policy name: `Somente o dono`
-   - Action: **Allow**
-   - Include → seletor **Emails** → `saboianeto@yahoo.com.br`
-7. **Save**.
+```jsonc
+"kv_namespaces": [
+  { "binding": "DADOS", "id": "o-id-que-voce-copiou" }
+]
+```
 
-Pronto. Ao abrir `studiolab3d.com.br/admin/` aparece a tela da Cloudflare
-pedindo o e-mail. O código chega na sua caixa, vale **10 minutos**, e só esse
-endereço passa.
+Se preferir pelo painel: **Workers & Pages → studiolab3d → Settings → Bindings**,
+adicionando `FOTOS` → bucket `oomm-fotos` e `DADOS` → namespace `oomm-dados`.
+O arquivo é mais confiável: sobrevive a redeploys.
 
-O painel reconhece sozinho que você entrou pelo Access e **pula a tela de login
-interna** — você cai direto no painel, com seu e-mail no topo.
+## 4. Proteger a API no Access
+
+**Este passo não é opcional.** Sem ele o painel recusa publicar — de propósito.
+
+1. **Cloudflare One → Access controls → Applications**
+2. Abra a aplicação `studiolab3d.com.br` → **Edit**
+3. Em **Destinations → + Add public hostname**:
+   - Subdomain: vazio
+   - Domain: `studiolab3d.com.br`
+   - **Path: `api/admin`**
+4. Salve
+
+Agora a aplicação tem dois destinos: `admin` (o painel) e `api/admin`
+(as rotas que gravam). A mesma regra de e-mail vale para os dois.
+
+**Por que o Worker recusa sem isso:** ele exige o cabeçalho que o Access injeta
+ao autenticar. Sem o cabeçalho, a requisição não passou pelo Access, e ele
+responde 401. Falha fechada — na dúvida, ninguém grava.
 
 ---
 
-## Detalhes que evitam dor de cabeça
+## Como sua filha usa
 
-- **O código vem de `noreply@notify.cloudflare.com`.** Yahoo às vezes joga na
-  promoções ou no spam. Marque como confiável no primeiro código que chegar.
-- **E-mail errado não recebe nada, mas a tela diz que enviou.** É de propósito:
-  ninguém descobre qual é o e-mail certo testando. Se você não recebeu, confira
-  se digitou exatamente `saboianeto@yahoo.com.br`.
-- **Path `admin` protege `/admin` e tudo abaixo.** O resto do site continua
-  público.
-- **Proteja também o outro arquivo:** o `editor-catalogo.html` está solto na
-  raiz. Mova para dentro de `/admin/` para ele ficar protegido junto.
-- **Quem entra na sua conta da Cloudflare contorna tudo isso.** Ative
-  verificação em duas etapas lá — e no Yahoo também. O código chega no e-mail:
-  **sua caixa de entrada é o elo mais fraco de todo o sistema.** Isso vale mais
-  que qualquer configuração deste arquivo.
+1. Abre `studiolab3d.com.br/admin/`
+2. Digita o e-mail, recebe o código, entra
+3. Aba **Catálogo**: arrasta as fotos, escolhe categoria e nome de cada uma
+4. Aba **Fotos das páginas**: troca qualquer uma das 23 fotos fixas do site
+5. **Publicar no site**
 
----
+O botão mostra o progresso foto a foto. No fim aparece a confirmação verde.
 
-## O que continua manual
+**Se der erro, nada é publicado pela metade.** A mensagem explica o que houve e
+as alterações continuam na tela para tentar de novo.
 
-Publicar. O painel gera um ZIP e você sobe os arquivos para o repositório.
-
-Automatizar isso exigiria dar à Cloudflare permissão de escrita no seu GitHub —
-mais uma credencial poderosa circulando. **Use assim por algumas semanas.**
-Se o passo de subir o ZIP realmente incomodar, aí vale automatizar. Se não
-incomodar, você economizou trabalho e uma chave a menos guardada.
+**Detalhe que evita confusão:** depois de publicar, o site pode continuar
+mostrando a versão antiga na aba já aberta, por causa do cache do navegador.
+Abrir em aba anônima ou dar Ctrl+F5 resolve. Isso não significa que falhou.
 
 ---
 
-## Resumo
+## Limites que valem saber
 
-| Passo | Onde | Tempo |
-|---|---|---|
-| 1. Domínio para a Cloudflare | dash.cloudflare.com + registrador | 10 min + espera do DNS |
-| 2. Publicar pelo Cloudflare Pages | Workers & Pages | 15 min |
-| 3. Access com One-time PIN | Zero Trust → Access | 5 min |
+- Foto de até 6 MB cada. Fotos de celular passam folgado — o painel já
+  reduz o tamanho antes de enviar.
+- O plano gratuito do KV permite cerca de mil gravações por dia. Cada
+  publicação gasta uma ou duas. Não há como esbarrar nisso no uso normal.
+- As fotos que vieram no repositório continuam lá e seguem funcionando.
+  Só as novas vão para o R2.
+- **Tirar uma peça do catálogo esconde ela do site, mas não apaga a foto**
+  do armazenamento. Se quiser apagar de vez, é pelo painel do R2.
+
+## Segurança
+
+Quem entra no e-mail entra no painel — o código chega lá. **Verificação em duas
+etapas no Yahoo e na conta Cloudflare** é o que sustenta tudo isso. Vale mais
+que qualquer configuração deste arquivo.
+
+Se um dia sua filha deixar de cuidar do catálogo, tire o e-mail dela da regra
+em Access controls → Applications → Policies. O acesso morre na hora.

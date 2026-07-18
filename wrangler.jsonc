@@ -1,0 +1,17 @@
+{
+  "name": "studiolab3d",
+  "main": "worker.js",
+  "compatibility_date": "2026-07-01",
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page"
+  },
+  "r2_buckets": [
+    { "binding": "FOTOS", "bucket_name": "oomm-fotos" }
+  ],
+  "kv_namespaces": [
+    { "binding": "DADOS", "id": "COLE_AQUI_O_ID_DO_KV" }
+  ],
+  "observability": { "enabled": true }
+}

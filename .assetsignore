@@ -1,0 +1,6 @@
+worker.js
+wrangler.jsonc
+.assetsignore
+LEIA-ME-ADMIN.md
+node_modules
+.git
