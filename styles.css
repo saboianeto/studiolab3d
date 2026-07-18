@@ -354,3 +354,14 @@
   .card-existente.off{opacity:.5;text-decoration:line-through}
   .card-existente input{width:auto;margin:0}
   @media (max-width:640px){ .card-novo{grid-template-columns:1fr} .card-novo .foto{width:100%;height:150px} }
+
+  /* botão de acrescentar foto numa página */
+  .add-foto{width:100%;padding:16px;margin:4px 0 10px;border:2px dashed #E3D6C9;background:#FFFDFB;
+    border-radius:12px;color:#5C4A52;font-size:15.5px;font-weight:600;cursor:pointer;
+    transition:border-color .15s,background .15s,color .15s}
+  .add-foto:hover{border-color:#A63E60;background:#FDF6F8;color:#9B3A58}
+  .slot.off{opacity:.5}
+  .slot.off .rot{text-decoration:line-through}
+  .slot .mostrar{display:inline-flex;align-items:center;gap:7px;margin-top:7px;
+    font-size:13px;font-weight:500;letter-spacing:0;text-transform:none;color:#5C4A52;cursor:pointer}
+  .slot .mostrar input{width:auto;margin:0;cursor:pointer}
