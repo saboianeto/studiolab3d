@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Admin · OOMM Studio</title>
-<!-- ADMIN v5 · 18/07/2026 — sem tela de login: a proteção é do Cloudflare Access -->
+<!-- ADMIN v6 · 18/07/2026 — sem tela de login: a proteção é do Cloudflare Access -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{--ink:#2A2126;--paper:#F4ECE3;--card:#fff;--line:#E3D6C9;--teal:#A63E60;--teal-d:#9B3A58;
@@ -100,7 +100,7 @@
 <div id="telaPainel">
   <header class="top">
     <h1>Admin · OOMM Studio</h1>
-    <span class="quem" id="quem"></span><span class="quem" style="margin-left:0;opacity:.7">· v5 · 18/07/2026</span>
+    <span class="quem" id="quem"></span><span class="quem" style="margin-left:0;opacity:.7">· v6 · 18/07/2026</span>
     <a href="editor-catalogo.html" style="color:#EE9CB2;font-size:13.5px;text-decoration:underline">Editor de categorias</a>
     <button id="sair" style="background:transparent;border-color:#5A424C;color:#fff;padding:7px 13px;font-size:13.5px">Sair</button>
   </header>
@@ -111,6 +111,8 @@
     <div class="abas" role="tablist">
       <button class="aba" role="tab" aria-selected="true" data-p="cat">Catálogo</button>
       <button class="aba" role="tab" aria-selected="false" data-p="pag">Fotos das páginas</button>
+      <button class="aba" role="tab" aria-selected="false" data-p="txt">Textos do site</button>
+      <button class="aba" role="tab" aria-selected="false" data-p="new">Cards novos</button>
     </div>
 
     <!-- ABA CATÁLOGO -->
@@ -121,6 +123,24 @@
         <input type="file" id="arquivo" accept="image/*" multiple hidden>
       </div>
       <div class="grade" id="gradeCat"></div>
+    </section>
+
+    <!-- ABA TEXTOS -->
+    <section class="painel" id="p-txt" hidden>
+      <p style="color:var(--muted);margin:0 0 20px;font-size:15px">
+        Todo texto visível do site, por página. Edite e clique em <b>Publicar</b>.
+        Campo em branco mantém o texto original.
+      </p>
+      <div id="listaTextos"></div>
+    </section>
+
+    <!-- ABA CARDS NOVOS -->
+    <section class="painel" id="p-new" hidden>
+      <p style="color:var(--muted);margin:0 0 20px;font-size:15px">
+        Acrescente cards às páginas do site, ou esconda os que já existem.
+        O card novo entra no fim da grade de produtos daquela página.
+      </p>
+      <div id="listaNovos"></div>
     </section>
 
     <!-- ABA PÁGINAS -->
@@ -188,15 +208,23 @@
     email = (await quemEntrou()) || "";
     await carregarCatalogo();
     try{
-      const r = await fetch("/api/admin/slots-atuais", {credentials:"same-origin"});
-      if(r.ok) window.__slotsAtuais = await r.json();
-    }catch(e){ window.__slotsAtuais = {}; }
+      const r = await fetch("/api/admin/paginas", {credentials:"same-origin"});
+      if(r.ok){
+        const d = await r.json();
+        window.__pub = {fotos:d.fotos||{}, textos:d.textos||{}, ocultos:d.ocultos||{}, novos:d.novos||{}};
+        // reflete na tela o que já está publicado
+        Object.entries(window.__pub.textos).forEach(([pag,sels])=>
+          Object.entries(sels).forEach(([sel,mapa])=>
+            Object.entries(mapa).forEach(([i,txt])=>{ textosEdit[pag+"|"+sel+"|"+i] = txt; })));
+        Object.entries(window.__pub.ocultos).forEach(([pag,arr])=> ocultos[pag] = new Set(arr));
+      }
+    }catch(e){ window.__pub = {fotos:{},textos:{},ocultos:{},novos:{}}; }
     $("#quem").textContent = email || "sessão autenticada";
     msg($("#avisoModo"),
       "As fotos são processadas aqui no seu navegador — nada é enviado para a internet. "+
       "Ao terminar, clique em <b>Gerar pacote para publicar</b> e suba os arquivos do ZIP para o repositório.",
       "ok");
-    montarCatalogo(); montarSlots(); contar();
+    montarCatalogo(); montarSlots(); montarTextos(); montarNovos(); contar();
   })();
 
   $("#sair").addEventListener("click", ()=>{ location.href = "/cdn-cgi/access/logout"; });
@@ -206,6 +234,9 @@
   const removidas = new Set();     // i do produtos.js
   const edicoes = {};              // i -> {c, n}
   const trocas = {};               // "pagina|idx" -> {blob, url, nome}
+  const textosEdit = {};           // "pagina|sel|idx" -> texto
+  const novosCards = {};           // pagina -> [{img, blob, url, titulo, desc, chips}]
+  const ocultos = {};              // pagina -> Set de índices de card
   let proximoId = Math.max(0, ...PRODUTOS.map(p=>p.i)) + 1;
 
   /* ================= IMAGENS ================= */
@@ -245,7 +276,7 @@
       try{
         const full  = await processar(f, 1456, 0.85);
         const thumb = await processar(f, 760,  0.78);
-        novas.push({id:proximoId++, cat:"brindes", nome:"", full, thumb, url:URL.createObjectURL(thumb)});
+        novas.push({id:proximoId++, cat:"brindes", nome:"", selo:"", full, thumb, url:URL.createObjectURL(thumb)});
       }catch(err){ alert("Não consegui ler "+f.name+": "+err.message); }
     }
     drop.querySelector("b").textContent = "Arraste fotos aqui ou clique para escolher";
@@ -255,17 +286,20 @@
   function montarCatalogo(){
     const g = $("#gradeCat"); g.innerHTML = "";
     const opts = CATEGORIAS.filter(c=>c.id!=="todos");
-    const sel = (val, on) => '<select data-campo="cat">'+opts.map(o=>
+    const sel = (val) => '<select data-campo="cat">'+opts.map(o=>
       '<option value="'+o.id+'"'+(o.id===val?" selected":"")+'>'+o.nome+'</option>').join("")+'</select>';
+    const selSelo = (val) => '<select data-campo="selo">'+SELOS.map(o=>
+      '<option value="'+o.id+'"'+(o.id===(val||"")?" selected":"")+'>'+o.nome+'</option>').join("")+'</select>';
 
     novas.forEach(n=>{
       const el = document.createElement("div"); el.className = "peca nova";
       el.innerHTML =
         '<div class="im"><span class="badge">NOVA</span><img src="'+n.url+'" alt=""></div>'+
         '<div class="bd"><div class="cod">OOMM-'+String(n.id).padStart(3,"0")+'</div>'+
-        sel(n.cat)+'<input type="text" placeholder="nome (opcional)" value="'+n.nome+'">'+
+        sel(n.cat)+selSelo(n.selo)+'<input type="text" placeholder="nome (opcional)" value="'+n.nome+'">'+
         '<button class="lixo">Remover</button></div>';
-      el.querySelector("select").onchange = e => n.cat = e.target.value;
+      el.querySelectorAll("select")[0].onchange = e => n.cat = e.target.value;
+      el.querySelectorAll("select")[1].onchange = e => n.selo = e.target.value;
       el.querySelector("input").oninput  = e => n.nome = e.target.value;
       el.querySelector(".lixo").onclick  = ()=>{ novas.splice(novas.indexOf(n),1); montarCatalogo(); contar(); };
       el.querySelector(".im").onclick = ()=>abrirZoom(n.url);
@@ -274,15 +308,16 @@
 
     PRODUTOS.forEach(p=>{
       if(removidas.has(p.i)) return;
-      const e0 = edicoes[p.i] || {c:p.c, n:p.n};
+      const e0 = edicoes[p.i] || {c:p.c, n:p.n, s:p.s};
       const el = document.createElement("div"); el.className = "peca";
       const arq = p.r ? "/fotos/t/p"+p.i+".jpg" : BASE+"img/catalogo/t/p"+String(p.i).padStart(2,"0")+".jpg";
       el.innerHTML =
         '<div class="im"><img src="'+arq+'" loading="lazy" alt=""></div>'+
         '<div class="bd"><div class="cod">OOMM-'+String(p.i).padStart(3,"0")+'</div>'+
-        sel(e0.c)+'<input type="text" placeholder="nome (opcional)" value="'+(e0.n||"").replace(/"/g,"&quot;")+'">'+
+        sel(e0.c)+selSelo(e0.s)+'<input type="text" placeholder="nome (opcional)" value="'+(e0.n||"").replace(/"/g,"&quot;")+'">'+
         '<button class="lixo">Tirar do catálogo</button></div>';
-      el.querySelector("select").onchange = e =>{ edicoes[p.i]={...e0, c:e.target.value}; contar(); };
+      el.querySelectorAll("select")[0].onchange = e =>{ edicoes[p.i]={...e0, c:e.target.value}; contar(); };
+      el.querySelectorAll("select")[1].onchange = e =>{ edicoes[p.i]={...e0, s:e.target.value}; contar(); };
       el.querySelector("input").oninput  = e =>{ edicoes[p.i]={...e0, n:e.target.value}; contar(); };
       el.querySelector(".lixo").onclick  = ()=>{
         if(confirm("Tirar a peça OOMM-"+String(p.i).padStart(3,"0")+" do catálogo?")){
@@ -332,11 +367,115 @@
     });
   }
 
+
+  /* ================= ABA: TEXTOS ================= */
+  function montarTextos(){
+    const alvo = $("#listaTextos"); alvo.innerHTML = "";
+    let atual = "";
+    TEXTOS.forEach(t=>{
+      if(t.pagina !== atual){
+        atual = t.pagina;
+        const h = document.createElement("div"); h.className = "grupo-tit";
+        h.textContent = t.tituloPagina + " · " + t.pagina;
+        alvo.appendChild(h);
+      }
+      const chave = t.pagina + "|" + t.sel + "|" + t.idx;
+      const valor = (chave in textosEdit) ? textosEdit[chave] : t.valor;
+      const el = document.createElement("div");
+      el.className = "txt-linha" + (chave in textosEdit && textosEdit[chave] !== t.valor ? " mudou" : "");
+      el.innerHTML = '<label>'+t.rotulo+'</label>'+
+        '<textarea rows="'+(valor.length>90?3:1)+'"></textarea>'+
+        '<p class="orig">Original: '+t.valor.replace(/</g,"&lt;")+'</p>';
+      const ta = el.querySelector("textarea");
+      ta.value = valor;
+      ta.addEventListener("input", ()=>{
+        if(ta.value === t.valor) delete textosEdit[chave]; else textosEdit[chave] = ta.value;
+        el.classList.toggle("mudou", chave in textosEdit);
+        contar();
+      });
+      alvo.appendChild(el);
+    });
+  }
+
+  /* ================= ABA: CARDS NOVOS ================= */
+  function montarNovos(){
+    const alvo = $("#listaNovos"); alvo.innerHTML = "";
+    Object.entries(PAGINAS).forEach(([pag, info])=>{
+      if(!info.temGrid) return;
+      const h = document.createElement("div"); h.className = "grupo-tit";
+      h.textContent = info.titulo + " · " + pag;
+      alvo.appendChild(h);
+
+      // cards que já existem: podem ser escondidos
+      const rotulos = SLOTS.filter(x=>x.pagina===pag && x.card!==null);
+      const vistos = new Set();
+      rotulos.forEach(x=>{
+        if(vistos.has(x.card)) return; vistos.add(x.card);
+        const linha = document.createElement("div");
+        const off = (ocultos[pag]||new Set()).has(x.card);
+        linha.className = "card-existente" + (off ? " off" : "");
+        linha.innerHTML = '<input type="checkbox" '+(off?"":"checked")+'><span>'+x.rotulo+'</span>';
+        linha.querySelector("input").addEventListener("change", e=>{
+          ocultos[pag] = ocultos[pag] || new Set();
+          if(e.target.checked) ocultos[pag].delete(x.card); else ocultos[pag].add(x.card);
+          if(!ocultos[pag].size) delete ocultos[pag];
+          montarNovos(); contar();
+        });
+        alvo.appendChild(linha);
+      });
+
+      // cards acrescentados
+      (novosCards[pag]||[]).forEach((c, k)=>{
+        const el = document.createElement("div");
+        el.className = "card-novo" + (c.blob && c.titulo ? " pronto" : "");
+        el.innerHTML =
+          '<div class="foto">'+(c.url ? '<img src="'+c.url+'" alt="">' : 'clique para escolher a foto')+'</div>'+
+          '<div class="campos">'+
+            '<input type="text" placeholder="Título do card" value="'+(c.titulo||"").replace(/"/g,"&quot;")+'">'+
+            '<input type="text" placeholder="Descrição curta" value="'+(c.desc||"").replace(/"/g,"&quot;")+'">'+
+            '<input type="text" placeholder="Etiquetas separadas por vírgula — ex: PLA, 2 cores" value="'+((c.chips||[]).join(", ")).replace(/"/g,"&quot;")+'">'+
+            '<button class="lixo" style="align-self:flex-start">Remover este card</button>'+
+          '</div>';
+        const [tIn, dIn, cIn] = el.querySelectorAll("input");
+        tIn.addEventListener("input", ()=>{ c.titulo = tIn.value; contar(); });
+        dIn.addEventListener("input", ()=>{ c.desc = dIn.value; contar(); });
+        cIn.addEventListener("input", ()=>{ c.chips = cIn.value.split(",").map(x=>x.trim()).filter(Boolean); contar(); });
+        el.querySelector(".foto").addEventListener("click", ()=>{
+          const inp = document.createElement("input"); inp.type="file"; inp.accept="image/*";
+          inp.onchange = async ()=>{
+            const f = inp.files[0]; if(!f) return;
+            try{
+              c.blob = await processar(f, 1200, 0.85);
+              c.url  = URL.createObjectURL(c.blob);
+              montarNovos(); contar();
+            }catch(e){ alert(e.message); }
+          };
+          inp.click();
+        });
+        el.querySelector(".lixo").addEventListener("click", ()=>{
+          novosCards[pag].splice(k,1);
+          if(!novosCards[pag].length) delete novosCards[pag];
+          montarNovos(); contar();
+        });
+        alvo.appendChild(el);
+      });
+
+      const add = document.createElement("button");
+      add.textContent = "+ Acrescentar card em " + info.titulo;
+      add.style.cssText = "margin:4px 0 8px";
+      add.addEventListener("click", ()=>{
+        novosCards[pag] = novosCards[pag] || [];
+        novosCards[pag].push({titulo:"", desc:"", chips:[]});
+        montarNovos(); contar();
+      });
+      alvo.appendChild(add);
+    });
+  }
+
   /* ================= ABAS / ZOOM ================= */
   document.querySelectorAll(".aba").forEach(b=>b.addEventListener("click", ()=>{
     document.querySelectorAll(".aba").forEach(x=>x.setAttribute("aria-selected", x===b));
-    $("#p-cat").hidden = b.dataset.p !== "cat";
-    $("#p-pag").hidden = b.dataset.p !== "pag";
+    ["cat","pag","txt","new"].forEach(k=> $("#p-"+k).hidden = b.dataset.p !== k);
   }));
   function abrirZoom(src){ $("#zoomImg").src = src; $("#zoom").classList.add("on"); }
   $("#zoom").addEventListener("click", ()=>$("#zoom").classList.remove("on"));
@@ -345,12 +484,18 @@
   /* ================= CONTADOR ================= */
   function contar(){
     const n = novas.length, r = removidas.size, t = Object.keys(trocas).length,
-          ed = Object.keys(edicoes).length;
+          ed = Object.keys(edicoes).length,
+          tx = Object.keys(textosEdit).length,
+          nc = Object.values(novosCards).reduce((a,x)=>a+x.length,0),
+          oc = Object.values(ocultos).reduce((a,x)=>a+x.size,0);
     const partes = [];
     if(n)  partes.push("<b>"+n+"</b> peça(s) nova(s)");
     if(r)  partes.push("<b>"+r+"</b> removida(s)");
     if(ed) partes.push("<b>"+ed+"</b> editada(s)");
     if(t)  partes.push("<b>"+t+"</b> foto(s) de página trocada(s)");
+    if(tx) partes.push("<b>"+tx+"</b> texto(s)");
+    if(nc) partes.push("<b>"+nc+"</b> card(s) novo(s)");
+    if(oc) partes.push("<b>"+oc+"</b> card(s) escondido(s)");
     $("#contador").innerHTML = partes.length ? (partes.join(" · ") + " — ainda não publicado") : "Tudo publicado. Nenhuma alteração pendente.";
     $("#btnPublicar").disabled = !partes.length;
   }
@@ -358,9 +503,8 @@
   $("#btnDescartar").addEventListener("click", ()=>{
     if(!confirm("Descartar todas as alterações desta sessão?")) return;
     novas.length = 0; removidas.clear();
-    Object.keys(edicoes).forEach(k=>delete edicoes[k]);
-    Object.keys(trocas).forEach(k=>delete trocas[k]);
-    montarCatalogo(); montarSlots(); contar();
+    [edicoes, trocas, textosEdit, novosCards, ocultos].forEach(o=>Object.keys(o).forEach(k=>delete o[k]));
+    montarCatalogo(); montarSlots(); montarTextos(); montarNovos(); contar();
   });
 
   /* ================= PUBLICAR ================= */
@@ -368,12 +512,17 @@
     const lista = [];
     PRODUTOS.forEach(p=>{
       if(removidas.has(p.i)) return;
-      const e0 = edicoes[p.i] || {c:p.c, n:p.n};
+      const e0 = edicoes[p.i] || {c:p.c, n:p.n, s:p.s};
       const item = {c:e0.c, n:e0.n||"", i:p.i};
-      if(p.r) item.r = 1;
+      if(e0.s) item.s = e0.s;
+      if(p.r)  item.r = 1;
       lista.push(item);
     });
-    novas.forEach(n=> lista.push({c:n.cat, n:n.nome||"", i:n.id, r:1}));
+    novas.forEach(n=>{
+      const item = {c:n.cat, n:n.nome||"", i:n.id, r:1};
+      if(n.selo) item.s = n.selo;
+      lista.push(item);
+    });
     return lista;
   }
 
@@ -401,33 +550,58 @@
       }
 
       // 2) fotos trocadas nas páginas
-      const mapaSlots = {};
+      const pub = window.__pub || {fotos:{},textos:{},ocultos:{},novos:{}};
       const chaves = Object.keys(trocas);
       let k = 0;
       for(const chave of chaves){
         btn.textContent = "Enviando foto de página " + (++k) + " de " + chaves.length + "…";
-        const t = trocas[chave];
         const nome = "site/" + chave.replace("|","-").replace(".html","") + "-" + Date.now() + ".jpg";
-        await enviar("/api/admin/foto?nome=" + encodeURIComponent(nome),
-                     {method:"POST", body:t.blob});
-        mapaSlots[chave] = "/fotos/" + nome;
+        await enviar("/api/admin/foto?nome=" + encodeURIComponent(nome), {method:"POST", body:trocas[chave].blob});
+        pub.fotos[chave] = "/fotos/" + nome;
       }
 
-      // 3) dados
+      // 3) fotos dos cards novos
+      const novosProntos = {};
+      for(const [pag, lista] of Object.entries(novosCards)){
+        for(const c of lista){
+          if(!c.titulo || !c.blob) continue;   // card incompleto é ignorado
+          btn.textContent = "Enviando card novo…";
+          const nome = "cards/" + pag.replace(".html","") + "-" + Date.now() + "-" + Math.random().toString(36).slice(2,7) + ".jpg";
+          await enviar("/api/admin/foto?nome=" + encodeURIComponent(nome), {method:"POST", body:c.blob});
+          (novosProntos[pag] = novosProntos[pag] || []).push({
+            img:"/fotos/"+nome, titulo:c.titulo, desc:c.desc||"", chips:c.chips||[]
+          });
+        }
+      }
+      Object.entries(novosProntos).forEach(([pag, arr])=>{
+        pub.novos[pag] = (pub.novos[pag]||[]).concat(arr);
+      });
+
+      // 4) textos
+      pub.textos = {};
+      Object.entries(textosEdit).forEach(([chave, txt])=>{
+        const [pag, sel, i] = chave.split("|");
+        if(!txt) return;
+        pub.textos[pag] = pub.textos[pag] || {};
+        pub.textos[pag][sel] = pub.textos[pag][sel] || {};
+        pub.textos[pag][sel][i] = txt;
+      });
+
+      // 5) cards escondidos
+      pub.ocultos = {};
+      Object.entries(ocultos).forEach(([pag, set])=>{ if(set.size) pub.ocultos[pag] = [...set]; });
+
+      // 6) gravar
       btn.textContent = "Salvando catálogo…";
       await enviar("/api/admin/catalogo", {
         method:"PUT", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({categorias: CATEGORIAS, produtos: montarLista()})
       });
-
-      if(chaves.length){
-        const anterior = await fetch("/api/admin/slots", {method:"PUT",
-          headers:{"Content-Type":"application/json"},
-          body: JSON.stringify(Object.assign({}, window.__slotsAtuais||{}, mapaSlots)),
-          credentials:"same-origin"});
-        if(!anterior.ok) throw new Error("Não consegui salvar as trocas das páginas.");
-        window.__slotsAtuais = Object.assign({}, window.__slotsAtuais||{}, mapaSlots);
-      }
+      btn.textContent = "Salvando páginas…";
+      await enviar("/api/admin/paginas", {
+        method:"PUT", headers:{"Content-Type":"application/json"}, body: JSON.stringify(pub)
+      });
+      window.__pub = pub;
 
       msg($("#avisoModo"),
         "<b>Publicado.</b> As alterações já estão no ar. Abra o site numa aba anônima "+
@@ -435,14 +609,9 @@
 
       // recarrega o estado a partir do que ficou salvo
       novas.length = 0; removidas.clear();
-      Object.keys(edicoes).forEach(x=>delete edicoes[x]);
-      Object.keys(trocas).forEach(x=>delete trocas[x]);
+      [edicoes, trocas, novosCards].forEach(o=>Object.keys(o).forEach(x=>delete o[x]));
       await carregarCatalogo();
-    try{
-      const r = await fetch("/api/admin/slots-atuais", {credentials:"same-origin"});
-      if(r.ok) window.__slotsAtuais = await r.json();
-    }catch(e){ window.__slotsAtuais = {}; }
-      montarCatalogo(); montarSlots(); contar();
+      montarCatalogo(); montarSlots(); montarTextos(); montarNovos(); contar();
       window.scrollTo({top:0, behavior:"smooth"});
 
     }catch(err){
