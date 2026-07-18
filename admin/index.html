@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Admin · OOMM Studio</title>
-<!-- ADMIN v6 · 18/07/2026 — sem tela de login: a proteção é do Cloudflare Access -->
+<!-- ADMIN v7 · 18/07/2026 — sem tela de login: a proteção é do Cloudflare Access -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{--ink:#2A2126;--paper:#F4ECE3;--card:#fff;--line:#E3D6C9;--teal:#A63E60;--teal-d:#9B3A58;
@@ -100,7 +100,7 @@
 <div id="telaPainel">
   <header class="top">
     <h1>Admin · OOMM Studio</h1>
-    <span class="quem" id="quem"></span><span class="quem" style="margin-left:0;opacity:.7">· v6 · 18/07/2026</span>
+    <span class="quem" id="quem"></span><span class="quem" style="margin-left:0;opacity:.7">· v7 · 18/07/2026</span>
     <a href="editor-catalogo.html" style="color:#EE9CB2;font-size:13.5px;text-decoration:underline">Editor de categorias</a>
     <button id="sair" style="background:transparent;border-color:#5A424C;color:#fff;padding:7px 13px;font-size:13.5px">Sair</button>
   </header>
@@ -112,7 +112,6 @@
       <button class="aba" role="tab" aria-selected="true" data-p="cat">Catálogo</button>
       <button class="aba" role="tab" aria-selected="false" data-p="pag">Fotos das páginas</button>
       <button class="aba" role="tab" aria-selected="false" data-p="txt">Textos do site</button>
-      <button class="aba" role="tab" aria-selected="false" data-p="new">Cards novos</button>
     </div>
 
     <!-- ABA CATÁLOGO -->
@@ -134,20 +133,10 @@
       <div id="listaTextos"></div>
     </section>
 
-    <!-- ABA CARDS NOVOS -->
-    <section class="painel" id="p-new" hidden>
-      <p style="color:var(--muted);margin:0 0 20px;font-size:15px">
-        Acrescente cards às páginas do site, ou esconda os que já existem.
-        O card novo entra no fim da grade de produtos daquela página.
-      </p>
-      <div id="listaNovos"></div>
-    </section>
-
     <!-- ABA PÁGINAS -->
     <section class="painel" id="p-pag" hidden>
       <p style="color:var(--muted);margin:0 0 20px;font-size:15px">
-        Cada linha é uma foto que aparece no site. Clique em <b>Trocar foto</b> e escolha a nova.
-        Só o que você trocar entra no pacote final.
+        Cada linha é uma foto que aparece no site. Troque as que já existem ou acrescente novas ao fim de cada página.
       </p>
       <div id="listaSlots"></div>
     </section>
@@ -222,9 +211,9 @@
     $("#quem").textContent = email || "sessão autenticada";
     msg($("#avisoModo"),
       "As fotos são processadas aqui no seu navegador — nada é enviado para a internet. "+
-      "Ao terminar, clique em <b>Gerar pacote para publicar</b> e suba os arquivos do ZIP para o repositório.",
+      "Ao terminar, clique em <b>Publicar no site</b> — as alterações vão ao ar na hora.",
       "ok");
-    montarCatalogo(); montarSlots(); montarTextos(); montarNovos(); contar();
+    montarCatalogo(); montarSlots(); montarTextos(); contar();
   })();
 
   $("#sair").addEventListener("click", ()=>{ location.href = "/cdn-cgi/access/logout"; });
@@ -332,41 +321,106 @@
   /* ================= ABA PÁGINAS ================= */
   function montarSlots(){
     const lista = $("#listaSlots"); lista.innerHTML = "";
-    let paginaAtual = "";
-    SLOTS.forEach(s=>{
-      if(s.pagina !== paginaAtual){
-        paginaAtual = s.pagina;
-        const t = document.createElement("div"); t.className = "grupo-tit";
-        t.textContent = s.tituloPagina + " · " + s.pagina;
-        lista.appendChild(t);
-      }
-      const chave = s.pagina+"|"+s.idx;
-      const el = document.createElement("div"); el.className = "slot";
-      el.innerHTML =
-        '<div class="mini"><img src="'+(trocas[chave]?trocas[chave].url:BASE+s.src)+'" alt=""></div>'+
-        '<div><p class="rot">'+s.rotulo+'</p>'+
-        '<p class="det">'+s.grupo+' · <span class="arq">'+(trocas[chave]?"nova foto":s.src)+'</span></p></div>'+
-        '<button>Trocar foto</button>';
-      if(trocas[chave]) el.classList.add("trocado");
-      el.querySelector("button").onclick = ()=>{
-        const inp = document.createElement("input");
-        inp.type="file"; inp.accept="image/*";
-        inp.onchange = async ()=>{
-          const f = inp.files[0]; if(!f) return;
-          try{
-            const blob = await processar(f, 1200, 0.85);
-            const nome = "img/site/" + s.pagina.replace(".html","") + "-" + s.idx + ".jpg";
-            trocas[chave] = {blob, url:URL.createObjectURL(blob), nome};
-            montarSlots(); contar();
-          }catch(err){ alert(err.message); }
+    const porPagina = {};
+    SLOTS.forEach(x => (porPagina[x.pagina] = porPagina[x.pagina] || []).push(x));
+
+    Object.entries(porPagina).forEach(([pag, itens])=>{
+      const info = PAGINAS[pag] || {titulo:pag, temGrid:false};
+      const t = document.createElement("div"); t.className = "grupo-tit";
+      t.textContent = info.titulo + " · " + pag;
+      lista.appendChild(t);
+
+      // --- fotos que já existem ---
+      itens.forEach(sl=>{
+        const chave = sl.pagina + "|" + sl.idx;
+        const escondido = sl.card !== null && (ocultos[pag]||new Set()).has(sl.card);
+        const el = document.createElement("div");
+        el.className = "slot" + (trocas[chave] ? " trocado" : "") + (escondido ? " off" : "");
+        el.innerHTML =
+          '<div class="mini"><img src="'+(trocas[chave] ? trocas[chave].url : BASE+sl.src)+'" alt=""></div>'+
+          '<div><p class="rot">'+sl.rotulo+'</p>'+
+          '<p class="det">'+sl.grupo+' · '+(trocas[chave] ? "foto nova" : sl.src)+'</p>'+
+          (sl.card !== null ? '<label class="mostrar"><input type="checkbox" '+(escondido?"":"checked")+'> aparece no site</label>' : '')+
+          '</div>'+
+          '<button>Trocar foto</button>';
+
+        el.querySelector("button").onclick = ()=>{
+          const inp = document.createElement("input"); inp.type="file"; inp.accept="image/*";
+          inp.onchange = async ()=>{
+            const fl = inp.files[0]; if(!fl) return;
+            try{
+              const blob = await processar(fl, 1200, 0.85);
+              trocas[chave] = {blob, url:URL.createObjectURL(blob)};
+              montarSlots(); contar();
+            }catch(err){ alert(err.message); }
+          };
+          inp.click();
         };
-        inp.click();
+        const cb = el.querySelector('input[type="checkbox"]');
+        if(cb) cb.onchange = e=>{
+          ocultos[pag] = ocultos[pag] || new Set();
+          if(e.target.checked) ocultos[pag].delete(sl.card); else ocultos[pag].add(sl.card);
+          if(!ocultos[pag].size) delete ocultos[pag];
+          montarSlots(); contar();
+        };
+        el.querySelector(".mini").onclick = ()=>abrirZoom(trocas[chave] ? trocas[chave].url : BASE+sl.src);
+        lista.appendChild(el);
+      });
+
+      if(!info.temGrid) return;
+
+      // --- fotos acrescentadas ---
+      (novosCards[pag]||[]).forEach((c, k)=>{
+        const el = document.createElement("div");
+        el.className = "card-novo" + (c.blob && c.titulo ? " pronto" : "");
+        el.innerHTML =
+          '<div class="foto">'+(c.url ? '<img src="'+c.url+'" alt="">' : 'clique para<br>escolher a foto')+'</div>'+
+          '<div class="campos">'+
+            '<input type="text" placeholder="Título — obrigatório" value="'+(c.titulo||"").replace(/"/g,"&quot;")+'">'+
+            '<input type="text" placeholder="Descrição curta" value="'+(c.desc||"").replace(/"/g,"&quot;")+'">'+
+            '<input type="text" placeholder="Etiquetas separadas por vírgula — ex: PLA, 2 cores" value="'+((c.chips||[]).join(", ")).replace(/"/g,"&quot;")+'">'+
+            '<button class="lixo" style="align-self:flex-start">Remover</button>'+
+          '</div>';
+        const campos = el.querySelectorAll("input");
+        campos[0].oninput = ()=>{ c.titulo = campos[0].value; el.classList.toggle("pronto", !!(c.blob && c.titulo)); contar(); };
+        campos[1].oninput = ()=>{ c.desc   = campos[1].value; contar(); };
+        campos[2].oninput = ()=>{ c.chips  = campos[2].value.split(",").map(x=>x.trim()).filter(Boolean); contar(); };
+        el.querySelector(".foto").onclick = ()=>escolherFoto(c, pag);
+        el.querySelector(".lixo").onclick = ()=>{
+          novosCards[pag].splice(k,1);
+          if(!novosCards[pag].length) delete novosCards[pag];
+          montarSlots(); contar();
+        };
+        lista.appendChild(el);
+      });
+
+      // --- botão de acrescentar ---
+      const add = document.createElement("button");
+      add.className = "add-foto";
+      add.innerHTML = "+ &nbsp;Adicionar foto em " + info.titulo;
+      add.onclick = ()=>{
+        novosCards[pag] = novosCards[pag] || [];
+        const c = {titulo:"", desc:"", chips:[]};
+        novosCards[pag].push(c);
+        escolherFoto(c, pag);       // já abre o seletor de arquivo
+        montarSlots(); contar();
       };
-      el.querySelector(".mini").onclick = ()=>abrirZoom(trocas[chave]?trocas[chave].url:BASE+s.src);
-      lista.appendChild(el);
+      lista.appendChild(add);
     });
   }
 
+  function escolherFoto(c, pag){
+    const inp = document.createElement("input"); inp.type="file"; inp.accept="image/*";
+    inp.onchange = async ()=>{
+      const fl = inp.files[0]; if(!fl) return;
+      try{
+        c.blob = await processar(fl, 1200, 0.85);
+        c.url  = URL.createObjectURL(c.blob);
+        montarSlots(); contar();
+      }catch(e){ alert(e.message); }
+    };
+    inp.click();
+  }
 
   /* ================= ABA: TEXTOS ================= */
   function montarTextos(){
@@ -397,85 +451,11 @@
     });
   }
 
-  /* ================= ABA: CARDS NOVOS ================= */
-  function montarNovos(){
-    const alvo = $("#listaNovos"); alvo.innerHTML = "";
-    Object.entries(PAGINAS).forEach(([pag, info])=>{
-      if(!info.temGrid) return;
-      const h = document.createElement("div"); h.className = "grupo-tit";
-      h.textContent = info.titulo + " · " + pag;
-      alvo.appendChild(h);
-
-      // cards que já existem: podem ser escondidos
-      const rotulos = SLOTS.filter(x=>x.pagina===pag && x.card!==null);
-      const vistos = new Set();
-      rotulos.forEach(x=>{
-        if(vistos.has(x.card)) return; vistos.add(x.card);
-        const linha = document.createElement("div");
-        const off = (ocultos[pag]||new Set()).has(x.card);
-        linha.className = "card-existente" + (off ? " off" : "");
-        linha.innerHTML = '<input type="checkbox" '+(off?"":"checked")+'><span>'+x.rotulo+'</span>';
-        linha.querySelector("input").addEventListener("change", e=>{
-          ocultos[pag] = ocultos[pag] || new Set();
-          if(e.target.checked) ocultos[pag].delete(x.card); else ocultos[pag].add(x.card);
-          if(!ocultos[pag].size) delete ocultos[pag];
-          montarNovos(); contar();
-        });
-        alvo.appendChild(linha);
-      });
-
-      // cards acrescentados
-      (novosCards[pag]||[]).forEach((c, k)=>{
-        const el = document.createElement("div");
-        el.className = "card-novo" + (c.blob && c.titulo ? " pronto" : "");
-        el.innerHTML =
-          '<div class="foto">'+(c.url ? '<img src="'+c.url+'" alt="">' : 'clique para escolher a foto')+'</div>'+
-          '<div class="campos">'+
-            '<input type="text" placeholder="Título do card" value="'+(c.titulo||"").replace(/"/g,"&quot;")+'">'+
-            '<input type="text" placeholder="Descrição curta" value="'+(c.desc||"").replace(/"/g,"&quot;")+'">'+
-            '<input type="text" placeholder="Etiquetas separadas por vírgula — ex: PLA, 2 cores" value="'+((c.chips||[]).join(", ")).replace(/"/g,"&quot;")+'">'+
-            '<button class="lixo" style="align-self:flex-start">Remover este card</button>'+
-          '</div>';
-        const [tIn, dIn, cIn] = el.querySelectorAll("input");
-        tIn.addEventListener("input", ()=>{ c.titulo = tIn.value; contar(); });
-        dIn.addEventListener("input", ()=>{ c.desc = dIn.value; contar(); });
-        cIn.addEventListener("input", ()=>{ c.chips = cIn.value.split(",").map(x=>x.trim()).filter(Boolean); contar(); });
-        el.querySelector(".foto").addEventListener("click", ()=>{
-          const inp = document.createElement("input"); inp.type="file"; inp.accept="image/*";
-          inp.onchange = async ()=>{
-            const f = inp.files[0]; if(!f) return;
-            try{
-              c.blob = await processar(f, 1200, 0.85);
-              c.url  = URL.createObjectURL(c.blob);
-              montarNovos(); contar();
-            }catch(e){ alert(e.message); }
-          };
-          inp.click();
-        });
-        el.querySelector(".lixo").addEventListener("click", ()=>{
-          novosCards[pag].splice(k,1);
-          if(!novosCards[pag].length) delete novosCards[pag];
-          montarNovos(); contar();
-        });
-        alvo.appendChild(el);
-      });
-
-      const add = document.createElement("button");
-      add.textContent = "+ Acrescentar card em " + info.titulo;
-      add.style.cssText = "margin:4px 0 8px";
-      add.addEventListener("click", ()=>{
-        novosCards[pag] = novosCards[pag] || [];
-        novosCards[pag].push({titulo:"", desc:"", chips:[]});
-        montarNovos(); contar();
-      });
-      alvo.appendChild(add);
-    });
-  }
 
   /* ================= ABAS / ZOOM ================= */
   document.querySelectorAll(".aba").forEach(b=>b.addEventListener("click", ()=>{
     document.querySelectorAll(".aba").forEach(x=>x.setAttribute("aria-selected", x===b));
-    ["cat","pag","txt","new"].forEach(k=> $("#p-"+k).hidden = b.dataset.p !== k);
+    ["cat","pag","txt"].forEach(k=> $("#p-"+k).hidden = b.dataset.p !== k);
   }));
   function abrirZoom(src){ $("#zoomImg").src = src; $("#zoom").classList.add("on"); }
   $("#zoom").addEventListener("click", ()=>$("#zoom").classList.remove("on"));
@@ -504,7 +484,7 @@
     if(!confirm("Descartar todas as alterações desta sessão?")) return;
     novas.length = 0; removidas.clear();
     [edicoes, trocas, textosEdit, novosCards, ocultos].forEach(o=>Object.keys(o).forEach(k=>delete o[k]));
-    montarCatalogo(); montarSlots(); montarTextos(); montarNovos(); contar();
+    montarCatalogo(); montarSlots(); montarTextos(); contar();
   });
 
   /* ================= PUBLICAR ================= */
@@ -611,7 +591,7 @@
       novas.length = 0; removidas.clear();
       [edicoes, trocas, novosCards].forEach(o=>Object.keys(o).forEach(x=>delete o[x]));
       await carregarCatalogo();
-      montarCatalogo(); montarSlots(); montarTextos(); montarNovos(); contar();
+      montarCatalogo(); montarSlots(); montarTextos(); contar();
       window.scrollTo({top:0, behavior:"smooth"});
 
     }catch(err){
