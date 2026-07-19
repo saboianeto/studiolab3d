@@ -260,7 +260,13 @@
         <small>Cada foto vira uma peça nova no catálogo. JPG ou PNG. Pode soltar várias de uma vez.</small>
         <input type="file" id="arquivo" accept="image/*" multiple hidden>
       </div>
-      <div class="grade" id="gradeCat"></div>
+      <div id="areaLista">
+        <div class="barra-lista" id="barraLista"></div>
+        <div id="listaPecas"></div>
+        <div class="pag-lista" id="pagLista"></div>
+        <div class="pag-info" id="pagInfo"></div>
+      </div>
+      <div id="areaFicha" hidden></div>
     </section>
 
     <!-- ABA NÚMEROS -->
@@ -292,9 +298,10 @@
       </p>
       <div class="txt-linha" style="border-color:#A63E60;margin-bottom:22px">
         <label>Link do grupo do WhatsApp</label>
-        <textarea id="grupoZap" rows="1" placeholder="https://chat.whatsapp.com/…"></textarea>
-        <p class="orig">Com este link preenchido, quem passar de 2 minutos no site recebe um
-        convite discreto para entrar no grupo. Deixe em branco para não mostrar nada.</p>
+        <textarea id="grupoZap" rows="2" placeholder="https://chat.whatsapp.com/…"></textarea>
+        <p class="orig">Quem passar de 2 minutos no site recebe um convite discreto para entrar.
+        Já vem preenchido com a comunidade atual — troque aqui se mudar o link, ou
+        <b>apague o campo</b> para não mostrar convite nenhum.</p>
       </div>
       <div id="listaTextos"></div>
     </section>
@@ -381,7 +388,7 @@
       "As fotos são processadas aqui no seu navegador — nada é enviado para a internet. "+
       "Ao terminar, clique em <b>Publicar no site</b> — as alterações vão ao ar na hora.",
       "ok");
-    montarCatalogo(); montarSlots(); montarTextos(); montarConfig(); montarSeo(); contar();
+    montarTudo();
   })();
 
   $("#sair").addEventListener("click", ()=>{ location.href = "/cdn-cgi/access/logout"; });
@@ -440,6 +447,24 @@
     }
     drop.querySelector("b").textContent = "Arraste fotos aqui ou clique para escolher";
     montarCatalogo(); contar();
+  }
+
+  // Cada painel é montado de forma isolada. Antes, um erro em qualquer um deles
+  // interrompia a sequência e as abas seguintes ficavam em branco — sem nenhuma
+  // pista na tela do que tinha acontecido.
+  function montarTudo(){
+    const passos = [["Catálogo", montarCatalogo], ["Fotos das páginas", montarSlots],
+                    ["Textos do site", montarTextos], ["Link do grupo", montarConfig],
+                    ["Google & buscas", montarSeo]];
+    const falhas = [];
+    passos.forEach(([nome, fn])=>{
+      try{ fn(); }
+      catch(e){ falhas.push(nome + " (" + e.message + ")"); console.error("Painel:", nome, e); }
+    });
+    try{ contar(); }catch(e){}
+    if(falhas.length)
+      msg($("#avisoModo"), "<b>Algumas partes do painel não carregaram:</b> " + falhas.join(", ") +
+        ".<br>O resto continua funcionando normalmente.", "err");
   }
 
   /* ================= LISTA DE PEÇAS ================= */
@@ -832,7 +857,8 @@
   /* ================= ABA: TEXTOS ================= */
   function montarConfig(){
     const c = $("#grupoZap");
-    c.value = config.grupoZap || "";
+    c.value = (config.grupoZap === undefined) ? "https://chat.whatsapp.com/Ln4poGVtnyM3Ok3ftarS9h" : config.grupoZap;
+    if(config.grupoZap === undefined) config.grupoZap = c.value;
     c.addEventListener("input", ()=>{ config.grupoZap = c.value.trim(); contar(); });
   }
 
@@ -1221,7 +1247,7 @@
     if(!confirm("Descartar todas as alterações desta sessão?")) return;
     novas.length = 0; removidas.clear();
     [edicoes, trocas, textosEdit, novosCards, ocultos, seoEdit].forEach(o=>Object.keys(o).forEach(k=>delete o[k]));
-    montarCatalogo(); montarSlots(); montarTextos(); montarConfig(); montarSeo(); contar();
+    montarTudo();
   });
 
   /* ================= PUBLICAR ================= */
@@ -1344,7 +1370,7 @@
       novas.length = 0; removidas.clear();
       [edicoes, trocas, novosCards].forEach(o=>Object.keys(o).forEach(x=>delete o[x]));
       await carregarCatalogo();
-      montarCatalogo(); montarSlots(); montarTextos(); montarConfig(); montarSeo(); contar();
+      montarTudo();
       window.scrollTo({top:0, behavior:"smooth"});
 
     }catch(err){
