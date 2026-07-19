@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Admin · OOMM Studio</title>
-<!-- ADMIN v17 · 19/07/2026 — sem tela de login: a proteção é do Cloudflare Access -->
+<!-- ADMIN v18 · 19/07/2026 — sem tela de login: a proteção é do Cloudflare Access -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{--ink:#2A2126;--paper:#F4ECE3;--card:#fff;--line:#E3D6C9;--teal:#A63E60;--teal-d:#9B3A58;
@@ -188,6 +188,8 @@
     padding:3px 7px;border-radius:5px;white-space:nowrap}
   .bdg.est{background:#E7F5EC;color:#14603A} .bdg.sem{background:#FBE9E9;color:#8A2A2A}
   .bdg.sel{background:#F6E7EA;color:#9B3A58} .bdg.falta{background:#FBF2DF;color:#6E5417}
+  .bdg.oculta{background:#E7E3EE;color:#4A3F63}
+  .linha-peca.escondida{opacity:.62}
   .linha-peca .seta{color:#C9B7A9;font-size:21px}
   .pag-lista{display:flex;gap:8px;justify-content:center;align-items:center;margin-top:18px;flex-wrap:wrap}
   .pag-lista button{min-width:38px;height:38px;padding:0 12px;border-radius:9px;border:1px solid #E3D6C9;
@@ -251,7 +253,7 @@
 <div id="telaPainel">
   <header class="top">
     <h1>Admin · OOMM Studio</h1>
-    <span class="quem" id="quem"></span><span class="quem" style="margin-left:0;opacity:.7">· v17 · 19/07/2026</span>
+    <span class="quem" id="quem"></span><span class="quem" style="margin-left:0;opacity:.7">· v18 · 19/07/2026</span>
     <a href="editor-catalogo.html" style="color:#EE9CB2;font-size:13.5px;text-decoration:underline">Editor de categorias</a>
     <button id="sair" style="background:transparent;border-color:#5A424C;color:#fff;padding:7px 13px;font-size:13.5px">Sair</button>
   </header>
@@ -330,7 +332,7 @@
   </div>
 
   <div class="barra">
-    <span class="cont" id="contador"></span>
+    <span class="cont" id="contador"></span><span class="cont" id="ultimaPub" style="opacity:.6"></span>
     <button class="pri" id="btnPublicar" style="margin-left:auto">Publicar no site</button>
     <button id="btnDescartar" style="background:transparent;border-color:#5A424C;color:#fff">Descartar alterações</button>
   </div>
@@ -403,6 +405,9 @@
       "Ao terminar, clique em <b>Publicar no site</b> — as alterações vão ao ar na hora.",
       "ok");
     montarTudo();
+    fixarBaseline();
+    mostrarUltimaPub();
+    contar();
   })();
 
   $("#sair").addEventListener("click", ()=>{ location.href = "/cdn-cgi/access/logout"; });
@@ -415,6 +420,18 @@
   const textosEdit = {};           // "pagina|sel|idx" -> texto
   const seoEdit = {};              // pagina -> {titulo, descricao}
   let config = {};                 // grupoZap e afins
+  // Espelho do que já está no servidor. O contador compara o que está na tela
+  // com isto — sem esse espelho, alterações já publicadas continuavam contando
+  // como pendentes e o rodapé nunca zerava.
+  let publicado = {textos:{}, seo:{}, config:{}};
+  const igual = (a,b) => JSON.stringify(a||null) === JSON.stringify(b||null);
+  function fixarBaseline(){
+    publicado = {
+      textos: JSON.parse(JSON.stringify(textosEdit)),
+      seo:    JSON.parse(JSON.stringify(seoEdit)),
+      config: JSON.parse(JSON.stringify(config))
+    };
+  }
   const novosCards = {};           // pagina -> [{img, blob, url, titulo, desc, chips}]
   const ocultos = {};              // pagina -> Set de índices de card
   let proximoId = Math.max(0, ...PRODUTOS.map(p=>p.i)) + 1;
@@ -456,11 +473,20 @@
       try{
         const full  = await processar(f, 1456, 0.85);
         const thumb = await processar(f, 760,  0.78);
-        novas.push({id:proximoId++, cat:"brindes", nome:"", selo:"", desc:"", materiais:[], cores:CORES_PADRAO.slice(), qtdCores:1, combos:[], estoque:1, full, thumb, url:URL.createObjectURL(thumb)});
+        novas.push({id:proximoId++, cat:"brindes", nome:"", selo:"", desc:"", materiais:[], cores:CORES_PADRAO.slice(), qtdCores:1, combos:[], estoque:1, oculto:0, full, thumb, url:URL.createObjectURL(thumb)});
       }catch(err){ alert("Não consegui ler "+f.name+": "+err.message); }
     }
     drop.querySelector("b").textContent = "Arraste fotos aqui ou clique para escolher";
-    montarCatalogo(); contar();
+    contar();
+    // Foto escolhida sem preencher nada não vira produto. Abrimos a ficha na hora
+    // para o cadastro terminar junto — quando é uma só, que é o caso comum.
+    if(imgs.length === 1 && novas.length){
+      abertaId = novas[novas.length-1].id;
+      montarFicha(abertaId);
+    } else {
+      montarCatalogo();
+      if(novas.length) aviso(imgs.length + " fotos adicionadas. Clique em cada uma para preencher.");
+    }
   }
 
   // Cada painel é montado de forma isolada. Antes, um erro em qualquer um deles
@@ -487,7 +513,7 @@
 
   function dadosPeca(p){
     const base = {c:p.c, n:p.n||"", s:p.s||"", d:p.d||"", co:p.co||[], qc:p.qc||1,
-                  cb:p.cb||[], mt:p.mt||(p.m?[p.m]:[]), e:(p.e===0?0:1)};
+                  cb:p.cb||[], mt:p.mt||(p.m?[p.m]:[]), e:(p.e===0?0:1), o:(p.o?1:0)};
     return edicoes[p.i] ? {...base, ...edicoes[p.i]} : base;
   }
 
@@ -495,7 +521,7 @@
     const lista = [];
     novas.forEach(n=> lista.push({novo:true, id:n.id, ref:n, url:n.url, dados:{
       c:n.cat, n:n.nome||"", s:n.selo||"", d:n.desc||"", co:n.cores||[], qc:n.qtdCores||1,
-      cb:n.combos||[], mt:n.materiais||[], e:(n.estoque===0?0:1)}}));
+      cb:n.combos||[], mt:n.materiais||[], e:(n.estoque===0?0:1), o:(n.oculto?1:0)}}));
     PRODUTOS.forEach(p=>{
       if(removidas.has(p.i)) return;
       lista.push({novo:false, id:p.i, ref:p, dados:dadosPeca(p),
@@ -527,6 +553,8 @@
     });
     const semNome = todas.filter(x=>!x.dados.n).length;
     if(semNome) barra.appendChild(chip("__sem","Sem nome", semNome));
+    const escondidas = todas.filter(x=>x.dados.o).length;
+    if(escondidas) barra.appendChild(chip("__oculta","Escondidas", escondidas));
     barra.querySelector("input").addEventListener("input", e=>{
       busca = e.target.value; pgLista = 1;
       montarCatalogo();
@@ -535,6 +563,7 @@
 
     let vis = todas;
     if(filtroCat === "__sem") vis = vis.filter(x=>!x.dados.n);
+    else if(filtroCat === "__oculta") vis = vis.filter(x=>x.dados.o);
     else if(filtroCat !== "todos") vis = vis.filter(x=>x.dados.c === filtroCat);
     if(busca.trim()){
       const t = busca.trim().toLowerCase();
@@ -554,7 +583,7 @@
       const cat = CATEGORIAS.find(c=>c.id===d.c);
       const selo = SELOS.find(z=>z.id===d.s);
       const el = document.createElement("div");
-      el.className = "linha-peca" + (x.novo ? " nova" : "");
+      el.className = "linha-peca" + (x.novo ? " nova" : "") + (d.o ? " escondida" : "");
       el.innerHTML =
         '<div class="mini"><img src="'+x.url+'" loading="lazy" alt=""></div>'+
         '<div><p class="nome">'+(d.n || '<span style="color:#B33A3A">sem nome</span>')+'</p>'+
@@ -563,6 +592,7 @@
           (x.novo ? '<span class="bdg est">nova</span>' : '')+
           (d.e ? '<span class="bdg est">em estoque</span>' : '<span class="bdg sem">sem estoque</span>')+
           (selo && selo.id ? '<span class="bdg sel">'+selo.nome+'</span>' : '')+
+          (d.o ? '<span class="bdg oculta">escondida</span>' : '')+
           (!d.d ? '<span class="bdg falta">falta descrição</span>' : '')+
         '</div><div class="seta">›</div>';
       el.onclick = ()=>{ abertaId = x.id; montarFicha(x.id); };
@@ -603,7 +633,7 @@
     function salvar(campo, valor){
       if(x.novo){
         const mapa = {c:"cat", n:"nome", s:"selo", d:"desc", co:"cores",
-                      qc:"qtdCores", cb:"combos", mt:"materiais", e:"estoque"};
+                      qc:"qtdCores", cb:"combos", mt:"materiais", e:"estoque", o:"oculto"};
         x.ref[mapa[campo]] = valor;
       } else {
         edicoes[id] = {...d, ...(edicoes[id]||{}), [campo]: valor};
@@ -641,7 +671,8 @@
         '<div class="ficha-secao" id="secCores"></div>'+
         '<div class="ficha-secao" style="display:flex;gap:10px;flex-wrap:wrap">'+
           '<button class="pri" id="btOk">Salvar e voltar</button>'+
-          '<button id="btTirar" style="color:#B33A3A">Tirar do catálogo</button>'+
+          '<button id="btTirar" style="color:'+(d.o?"#1F8A54":"#B33A3A")+'">'+
+            (d.o ? "Voltar a exibir no catálogo" : "Esconder do catálogo")+'</button>'+
         '</div>'+
       '</div>';
 
@@ -658,12 +689,16 @@
         aviso(e.message, "err");
       }finally{ b.disabled = false; b.textContent = txt; }
     };
-    $("#btTirar").onclick   = ()=>{
-      if(!confirm("Tirar a peça OOMM-"+String(id).padStart(3,"0")+" do catálogo?")) return;
-      if(x.novo) novas.splice(novas.indexOf(x.ref),1); else removidas.add(id);
-      abertaId=null; montarCatalogo(); contar();
-      gravarCatalogo().then(()=>{ montarCatalogo(); aviso("Peça retirada do catálogo."); })
-                      .catch(e=>aviso(e.message, "err"));
+    $("#btTirar").onclick   = async ()=>{
+      const escondendo = !d.o;
+      if(escondendo && !confirm("Esconder a peça OOMM-"+String(id).padStart(3,"0")+
+         " do catálogo?\n\nEla continua aqui no painel e pode voltar quando você quiser.")) return;
+      salvar("o", escondendo ? 1 : 0);
+      try{
+        await gravarCatalogo();
+        abertaId = null; montarCatalogo();
+        aviso(escondendo ? "Peça escondida do catálogo." : "Peça voltou para o catálogo.");
+      }catch(e){ aviso(e.message, "err"); }
     };
     $("#fNome").oninput     = e=>salvar("n", e.target.value);
     $("#fCat").onchange     = e=>{ salvar("c", e.target.value); };
@@ -1265,10 +1300,11 @@
   function contar(){
     const n = novas.length, r = removidas.size, t = Object.keys(trocas).length,
           ed = Object.keys(edicoes).length,
-          tx = Object.keys(textosEdit).length,
+          tx = Object.keys(textosEdit).filter(k=>!igual(textosEdit[k], publicado.textos[k])).length +
+               Object.keys(publicado.textos).filter(k=>!(k in textosEdit)).length,
           nc = Object.values(novosCards).reduce((a,x)=>a+x.length,0),
           oc = Object.values(ocultos).reduce((a,x)=>a+x.size,0),
-          sq = Object.keys(seoEdit).length;
+          sq = Object.keys(seoEdit).filter(k=>!igual(seoEdit[k], publicado.seo[k])).length;
     const partes = [];
     if(n)  partes.push("<b>"+n+"</b> peça(s) nova(s)");
     if(r)  partes.push("<b>"+r+"</b> removida(s)");
@@ -1278,7 +1314,7 @@
     if(nc) partes.push("<b>"+nc+"</b> card(s) novo(s)");
     if(oc) partes.push("<b>"+oc+"</b> card(s) escondido(s)");
     if(sq) partes.push("<b>"+sq+"</b> página(s) com SEO editado");
-    if(config && config.grupoZap !== undefined && config.grupoZap !== (window.__cfg0||"")) partes.push("link do grupo");
+    if(!igual(config, publicado.config)) partes.push("link do grupo");
     $("#contador").innerHTML = partes.length ? (partes.join(" · ") + " — ainda não publicado") : "Tudo publicado. Nenhuma alteração pendente.";
     $("#btnPublicar").disabled = !partes.length;
   }
@@ -1311,6 +1347,23 @@
     await carregarCatalogo();
     novas.length = 0; removidas.clear();
     Object.keys(edicoes).forEach(k=>delete edicoes[k]);
+    registrarPublicacao();
+  }
+
+  function registrarPublicacao(){
+    const agora = new Date();
+    try{ localStorage.setItem("oomm_ultima_pub", agora.toISOString()); }catch(e){}
+    mostrarUltimaPub();
+  }
+
+  function mostrarUltimaPub(){
+    let t = "";
+    try{ t = localStorage.getItem("oomm_ultima_pub") || ""; }catch(e){}
+    const el = $("#ultimaPub");
+    if(!el) return;
+    el.textContent = t
+      ? "última publicação: " + new Date(t).toLocaleString("pt-BR", {day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit"})
+      : "";
   }
 
   function aviso(texto, tipo){
@@ -1338,6 +1391,7 @@
       if(e0.qc && e0.qc > 1)    item.qc = e0.qc;
       if(e0.cb && e0.cb.length) item.cb = e0.cb;
       if(e0.e === 0)            item.e = 0;
+      if(e0.o)                  item.o = 1;
       if(p.r)  item.r = 1;
       lista.push(item);
     });
@@ -1350,6 +1404,7 @@
       if(n.qtdCores && n.qtdCores > 1) item.qc = n.qtdCores;
       if(n.combos && n.combos.length) item.cb = n.combos;
       if(n.estoque === 0) item.e = 0;
+      if(n.oculto) item.o = 1;
       lista.push(item);
     });
     return lista;
@@ -1429,6 +1484,8 @@
         method:"PUT", headers:{"Content-Type":"application/json"}, body: JSON.stringify(pub)
       });
       window.__pub = pub;
+      fixarBaseline();
+      registrarPublicacao();
 
       msg($("#avisoModo"),
         "<b>Publicado.</b> As alterações já estão no ar. Abra o site numa aba anônima "+
