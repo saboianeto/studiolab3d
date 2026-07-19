@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Admin · OOMM Studio</title>
-<!-- ADMIN v9 · 19/07/2026 — sem tela de login: a proteção é do Cloudflare Access -->
+<!-- ADMIN v10 · 19/07/2026 — sem tela de login: a proteção é do Cloudflare Access -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{--ink:#2A2126;--paper:#F4ECE3;--card:#fff;--line:#E3D6C9;--teal:#A63E60;--teal-d:#9B3A58;
@@ -100,7 +100,7 @@
 <div id="telaPainel">
   <header class="top">
     <h1>Admin · OOMM Studio</h1>
-    <span class="quem" id="quem"></span><span class="quem" style="margin-left:0;opacity:.7">· v9 · 19/07/2026</span>
+    <span class="quem" id="quem"></span><span class="quem" style="margin-left:0;opacity:.7">· v10 · 19/07/2026</span>
     <a href="editor-catalogo.html" style="color:#EE9CB2;font-size:13.5px;text-decoration:underline">Editor de categorias</a>
     <button id="sair" style="background:transparent;border-color:#5A424C;color:#fff;padding:7px 13px;font-size:13.5px">Sair</button>
   </header>
@@ -113,6 +113,7 @@
       <button class="aba" role="tab" aria-selected="false" data-p="pag">Fotos das páginas</button>
       <button class="aba" role="tab" aria-selected="false" data-p="txt">Textos do site</button>
       <button class="aba" role="tab" aria-selected="false" data-p="seo">Google &amp; buscas</button>
+      <button class="aba" role="tab" aria-selected="false" data-p="num">Números</button>
     </div>
 
     <!-- ABA CATÁLOGO -->
@@ -123,6 +124,18 @@
         <input type="file" id="arquivo" accept="image/*" multiple hidden>
       </div>
       <div class="grade" id="gradeCat"></div>
+    </section>
+
+    <!-- ABA NÚMEROS -->
+    <section class="painel" id="p-num" hidden>
+      <div class="num-topo">
+        <span style="color:var(--muted);font-size:15px">Período:</span>
+        <button class="per" data-d="7"   aria-selected="false">7 dias</button>
+        <button class="per" data-d="30"  aria-selected="true">30 dias</button>
+        <button class="per" data-d="90"  aria-selected="false">90 dias</button>
+        <button class="per" data-d="365" aria-selected="false">1 ano</button>
+      </div>
+      <div id="numConteudo"></div>
     </section>
 
     <!-- ABA SEO -->
@@ -549,10 +562,101 @@
     });
   }
 
+  /* ================= ABA: NÚMEROS ================= */
+  let periodo = 30, carregandoNum = false;
+
+  async function montarNumeros(){
+    if(carregandoNum) return;
+    carregandoNum = true;
+    const alvo = $("#numConteudo");
+    alvo.innerHTML = '<p style="color:var(--muted)">Carregando…</p>';
+    try{
+      const r = await fetch("/api/admin/metricas?dias="+periodo, {credentials:"same-origin"});
+      if(!r.ok) throw new Error("Não consegui ler os números.");
+      const d = await r.json();
+      if(d.semBanco){
+        alvo.innerHTML = '<div class="msg warn"><b>Falta ligar o banco de métricas.</b><br>'+
+          'Crie um banco D1 chamado <code>oomm-metricas</code> e cole o ID no <code>wrangler.jsonc</code>. '+
+          'O passo a passo está no LEIA-ME-ADMIN.md. Enquanto isso o site funciona normal — só não guarda números.</div>';
+        return;
+      }
+      desenhar(d, alvo);
+    }catch(e){
+      alvo.innerHTML = '<div class="msg err">'+e.message+'</div>';
+    }finally{ carregandoNum = false; }
+  }
+
+  function desenhar(d, alvo){
+    const t = d.totais || {};
+    const visitas = t.pagina || 0, zap = t.whatsapp || 0, loja = t.loja || 0, peca = t.peca || 0;
+    const taxa = visitas ? ((zap / visitas) * 100).toFixed(1) : "0,0";
+    const nf = n => n.toLocaleString("pt-BR");
+
+    const cartoes =
+      '<div class="cartoes">'+
+      cartao("Páginas vistas", nf(visitas), "nos últimos "+d.dias+" dias")+
+      cartao("Cliques no WhatsApp", nf(zap), "pedidos iniciados", true)+
+      cartao("Taxa de contato", taxa.replace(".",",")+"%", "de quem visitou chamou")+
+      cartao("Cliques nas lojas", nf(loja), "Shopee e Mercado Livre")+
+      '</div>';
+
+    // gráfico por dia
+    const dias = {};
+    (d.porDia||[]).forEach(r=>{
+      dias[r.dia] = dias[r.dia] || {pagina:0, whatsapp:0};
+      if(r.tipo==="pagina") dias[r.dia].pagina = r.n;
+      if(r.tipo==="whatsapp") dias[r.dia].whatsapp = r.n;
+    });
+    const chaves = Object.keys(dias).sort();
+    const maior = Math.max(1, ...chaves.map(k=>dias[k].pagina));
+    const grafico = chaves.length
+      ? '<div class="grafico">'+chaves.map(k=>{
+          const v = dias[k];
+          const dt = k.split("-").reverse().slice(0,2).join("/");
+          return '<div class="col" data-t="'+dt+' · '+v.pagina+' visitas · '+v.whatsapp+' no zap">'+
+            '<div class="b2" style="height:'+(v.whatsapp/maior*100)+'%"></div>'+
+            '<div class="b1" style="height:'+(v.pagina/maior*100)+'%"></div></div>';
+        }).join("")+'</div>'+
+        '<div class="legenda"><span><i style="background:#C9B7A9"></i>páginas vistas</span>'+
+        '<span><i style="background:#A63E60"></i>cliques no WhatsApp</span></div>'
+      : '<div class="msg warn">Ainda não há dados no período. Os números começam a aparecer conforme as pessoas visitam o site.</div>';
+
+    const tabelas = '<div class="tabelas">'+
+      tabela("Páginas mais vistas", d.paginas)+
+      tabela("Peças mais pedidas", d.pecas)+
+      tabela("De onde vem a visita", d.origens)+
+      tabela("Cliques por loja", d.lojas)+
+      '</div>';
+
+    alvo.innerHTML = cartoes + grafico + tabelas +
+      '<p style="color:var(--muted);font-size:13.5px;margin-top:22px;line-height:1.6">'+
+      'Contamos só o que a pessoa faz no site — nenhum dado pessoal, nenhum cookie. '+
+      'Robôs de busca são descartados, então estes números costumam ser menores e mais honestos '+
+      'que os de outras ferramentas.</p>';
+  }
+
+  function cartao(rot, val, sub, destaque){
+    return '<div class="cartao'+(destaque?" destaque":"")+'">'+
+      '<p class="rot">'+rot+'</p><p class="val">'+val+'</p><p class="sub">'+sub+'</p></div>';
+  }
+
+  function tabela(titulo, linhas){
+    const l = (linhas||[]).filter(x=>x.alvo);
+    return '<div class="tab-num"><h4>'+titulo+'</h4>'+
+      (l.length ? l.map(x=>'<div class="l"><span>'+String(x.alvo).slice(0,42)+'</span><b>'+x.n+'</b></div>').join("")
+                : '<p class="vazio">Sem dados ainda.</p>')+'</div>';
+  }
+
+  document.querySelectorAll(".per").forEach(b=>b.addEventListener("click", ()=>{
+    document.querySelectorAll(".per").forEach(x=>x.setAttribute("aria-selected", x===b));
+    periodo = Number(b.dataset.d); montarNumeros();
+  }));
+
   /* ================= ABAS / ZOOM ================= */
   document.querySelectorAll(".aba").forEach(b=>b.addEventListener("click", ()=>{
     document.querySelectorAll(".aba").forEach(x=>x.setAttribute("aria-selected", x===b));
-    ["cat","pag","txt","seo"].forEach(k=> $("#p-"+k).hidden = b.dataset.p !== k);
+    ["cat","pag","txt","seo","num"].forEach(k=> $("#p-"+k).hidden = b.dataset.p !== k);
+    if(b.dataset.p === "num") montarNumeros();
   }));
   function abrirZoom(src){ $("#zoomImg").src = src; $("#zoom").classList.add("on"); }
   $("#zoom").addEventListener("click", ()=>$("#zoom").classList.remove("on"));
