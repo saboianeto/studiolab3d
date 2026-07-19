@@ -187,7 +187,19 @@ async function montarPagina(request, env, o) {
   const alvo = new URL(request.url);
   alvo.pathname = "/produto.html";
   alvo.search = "";
-  const html = await env.ASSETS.fetch(new Request(alvo.toString(), request));
+
+  // O servidor de arquivos responde a "/produto.html" com um redirecionamento
+  // para "/produto" (ele remove a extensão sozinho). Se repassarmos isso ao
+  // navegador, ele sai de /peca/... e a página perde a identidade da peça.
+  // Então seguimos o redirecionamento aqui dentro e entregamos o conteúdo.
+  let html = await env.ASSETS.fetch(new Request(alvo.toString(), request));
+  let voltas = 0;
+  while (html.status >= 300 && html.status < 400 && voltas++ < 3) {
+    const destino = html.headers.get("Location");
+    if (!destino) break;
+    html = await env.ASSETS.fetch(new Request(new URL(destino, alvo.origin).toString(), request));
+  }
+  if (html.status !== 200) return null;
 
   let rw = new HTMLRewriter()
     // A página vive em /catalogo.html mas é servida em /peca/... Sem esta linha,

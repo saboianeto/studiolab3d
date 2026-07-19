@@ -215,8 +215,8 @@
     cat: p.c,
     selo: p.s || "",
     desc: (p.d || "").trim(),
-    thumb: p.r ? "/fotos/t/p"+p.i+".jpg" : "img/catalogo/t/p"+pad2(p.i)+".jpg",
-    full:  p.r ? "/fotos/p"+p.i+".jpg"   : "img/catalogo/p"+pad2(p.i)+".jpg"
+    thumb: p.r ? "/fotos/t/p"+p.i+".jpg" : "/img/catalogo/t/p"+pad2(p.i)+".jpg",
+    full:  p.r ? "/fotos/p"+p.i+".jpg"   : "/img/catalogo/p"+pad2(p.i)+".jpg"
   });
 
   const SELOS = {
