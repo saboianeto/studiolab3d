@@ -226,6 +226,10 @@
     };
   }
 
+  // Toda peça sai do estúdio nestas cores. Se ninguém marcou nada no painel,
+  // é isto que o cliente vê — melhor que um bloco vazio.
+  const CORES_PADRAO = ["branco","azul","preto","vermelho"];
+
   const PALETA = {
     branco:"#F2F0EC", preto:"#1E1E20", vermelho:"#D3312C", rosa:"#EE6FA0",
     pink:"#E5187F", laranja:"#F07C1E", amarelo:"#F2C230", verde:"#2E9E52",
@@ -270,12 +274,16 @@
       }).join("");
       $("#obsCores").textContent = "Esta peça é impressa em " + it.qtdCores +
         " cores. Outras combinações sob consulta.";
-    } else if(it.cores.length){
+    } else {
+      const cores = it.cores.length ? it.cores : CORES_PADRAO;
       $("#blocoCores").hidden = false;
       $("#tituloCores").textContent = "Cores disponíveis";
-      $("#pCores").innerHTML = it.cores.map(c=>
+      $("#pCores").innerHTML = cores.map(c=>
         '<span class="cor" title="'+c+'"><i style="background:'+(PALETA[c]||"#CCC")+'"></i>'+
         c.replace(/-/g," ")+'</span>').join("");
+      $("#obsCores").textContent = it.cores.length
+        ? "Outras cores sob consulta — trabalhamos com mais de 30 filamentos."
+        : "Estas são as cores que temos sempre em casa. Outras sob consulta.";
     }
 
     $("#pLista").innerHTML = [
