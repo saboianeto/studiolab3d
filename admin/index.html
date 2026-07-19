@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Admin · OOMM Studio</title>
-<!-- ADMIN v15 · 19/07/2026 — sem tela de login: a proteção é do Cloudflare Access -->
+<!-- ADMIN v17 · 19/07/2026 — sem tela de login: a proteção é do Cloudflare Access -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{--ink:#2A2126;--paper:#F4ECE3;--card:#fff;--line:#E3D6C9;--teal:#A63E60;--teal-d:#9B3A58;
@@ -229,6 +229,20 @@
   .rk-b i{display:block;height:100%;border-radius:4px}
   .rk-v{color:var(--pnm);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
   .rk-est b{color:#3A4150;font-size:12px} .rk-est b.on{color:#F2A73B}
+  .toast{position:fixed;left:50%;bottom:80px;transform:translate(-50%,14px);z-index:300;
+    background:#1F8A54;color:#fff;font-size:14.5px;font-weight:600;padding:13px 20px;
+    border-radius:11px;box-shadow:0 12px 34px rgba(20,22,28,.28);opacity:0;pointer-events:none;
+    transition:opacity .2s,transform .2s;max-width:min(460px,90vw);text-align:center}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+  .toast.err{background:#B33A3A}
+  .um-dia{padding:8px 0}
+  .um-dia-t{font-size:13px;color:var(--pnm);margin:0 0 14px}
+  .um-dia-l{display:flex;align-items:center;justify-content:space-between;gap:14px;
+    padding:11px 0;border-top:1px solid #2B313C;font-size:14px;color:var(--pnt)}
+  .um-dia-l:first-of-type{border-top:none}
+  .um-dia-l span{display:inline-flex;align-items:center;gap:9px;color:var(--pnm)}
+  .um-dia-l i{width:10px;height:10px;border-radius:3px}
+  .um-dia-l b{font-size:22px;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -237,7 +251,7 @@
 <div id="telaPainel">
   <header class="top">
     <h1>Admin · OOMM Studio</h1>
-    <span class="quem" id="quem"></span><span class="quem" style="margin-left:0;opacity:.7">· v15 · 19/07/2026</span>
+    <span class="quem" id="quem"></span><span class="quem" style="margin-left:0;opacity:.7">· v17 · 19/07/2026</span>
     <a href="editor-catalogo.html" style="color:#EE9CB2;font-size:13.5px;text-decoration:underline">Editor de categorias</a>
     <button id="sair" style="background:transparent;border-color:#5A424C;color:#fff;padding:7px 13px;font-size:13.5px">Sair</button>
   </header>
@@ -606,7 +620,7 @@
       '<option value="'+o.v+'"'+(o.v===d.qc?" selected":"")+'>'+o.nome+'</option>').join("");
 
     $("#areaFicha").innerHTML =
-      '<button class="voltar" id="btVoltar">‹ Voltar para a lista</button>'+
+      '<button class="voltar" id="btVoltar">‹ Voltar sem salvar</button>'+
       '<div class="ficha">'+
         '<div class="ficha-topo">'+
           '<div class="ficha-foto"><img src="'+x.url+'" alt=""></div>'+
@@ -626,17 +640,30 @@
           '<div class="mats-box" id="fMats"></div></div>'+
         '<div class="ficha-secao" id="secCores"></div>'+
         '<div class="ficha-secao" style="display:flex;gap:10px;flex-wrap:wrap">'+
-          '<button class="pri" id="btOk">Concluir e voltar</button>'+
+          '<button class="pri" id="btOk">Salvar e voltar</button>'+
           '<button id="btTirar" style="color:#B33A3A">Tirar do catálogo</button>'+
         '</div>'+
       '</div>';
 
     $("#btVoltar").onclick  = ()=>{ abertaId=null; montarCatalogo(); };
-    $("#btOk").onclick      = ()=>{ abertaId=null; montarCatalogo(); };
+    $("#btOk").onclick      = async ()=>{
+      const b = $("#btOk"); const txt = b.textContent;
+      b.disabled = true;
+      try{
+        await gravarCatalogo(m => { b.textContent = m; });
+        abertaId = null;
+        montarCatalogo();
+        aviso("Peça salva e publicada no site.");
+      }catch(e){
+        aviso(e.message, "err");
+      }finally{ b.disabled = false; b.textContent = txt; }
+    };
     $("#btTirar").onclick   = ()=>{
       if(!confirm("Tirar a peça OOMM-"+String(id).padStart(3,"0")+" do catálogo?")) return;
       if(x.novo) novas.splice(novas.indexOf(x.ref),1); else removidas.add(id);
       abertaId=null; montarCatalogo(); contar();
+      gravarCatalogo().then(()=>{ montarCatalogo(); aviso("Peça retirada do catálogo."); })
+                      .catch(e=>aviso(e.message, "err"));
     };
     $("#fNome").oninput     = e=>salvar("n", e.target.value);
     $("#fCat").onchange     = e=>{ salvar("c", e.target.value); };
@@ -1075,7 +1102,20 @@
     (porDia||[]).forEach(r=>{ m[r.dia] = m[r.dia] || {p:0,z:0};
       if(r.tipo==="pagina") m[r.dia].p = r.n; if(r.tipo==="whatsapp") m[r.dia].z = r.n; });
     const dias = Object.keys(m).sort();
-    if(dias.length < 2) return '<p class="vazio">Ainda não há dias suficientes para desenhar a curva.</p>';
+    if(!dias.length) return '<p class="vazio">Sem movimento no período.</p>';
+
+    // Um dia só não desenha curva. Em vez de sumir com o dado, mostramos o dia.
+    if(dias.length === 1){
+      const k = dias[0], v = m[k];
+      const dt = k.split("-").reverse().join("/");
+      return '<div class="um-dia">'+
+        '<p class="um-dia-t">Movimento de '+dt+'</p>'+
+        '<div class="um-dia-l"><span><i style="background:#E5486F"></i>páginas vistas</span>'+
+        '<b>'+nf(v.p)+'</b></div>'+
+        '<div class="um-dia-l"><span><i style="background:#22C48A"></i>conversas no WhatsApp</span>'+
+        '<b>'+nf(v.z)+'</b></div>'+
+        '<p class="nota">A curva aparece a partir do segundo dia com movimento.</p></div>';
+    }
 
     const W=780, H=260, ML=44, MR=14, MT=16, MB=28, iw=W-ML-MR, ih=H-MT-MB;
     const teto = Math.max(5, Math.ceil(Math.max(...dias.map(k=>m[k].p))/5)*5);
@@ -1250,14 +1290,54 @@
     montarTudo();
   });
 
+  /* ================= GRAVAR O CATÁLOGO ================= */
+  // O catálogo é guardado como uma lista só, então gravar uma peça é gravar a
+  // lista inteira. Na prática dá no mesmo: o que está na tela é o que vai.
+  async function gravarCatalogo(aviso){
+    for(const n of novas){
+      if(n.enviada) continue;
+      if(aviso) aviso("Enviando a foto…");
+      await enviar("/api/admin/foto?nome=" + encodeURIComponent("p"+n.id+".jpg"),
+                   {method:"POST", body:n.full});
+      await enviar("/api/admin/foto?nome=" + encodeURIComponent("t/p"+n.id+".jpg"),
+                   {method:"POST", body:n.thumb});
+      n.enviada = true;
+    }
+    if(aviso) aviso("Salvando…");
+    await enviar("/api/admin/catalogo", {
+      method:"PUT", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({categorias: CATEGORIAS, produtos: montarLista(), config: config})
+    });
+    await carregarCatalogo();
+    novas.length = 0; removidas.clear();
+    Object.keys(edicoes).forEach(k=>delete edicoes[k]);
+  }
+
+  function aviso(texto, tipo){
+    let t = document.getElementById("toast");
+    if(!t){
+      t = document.createElement("div"); t.id = "toast"; document.body.appendChild(t);
+    }
+    t.className = "toast " + (tipo || "ok") + " on";
+    t.textContent = texto;
+    clearTimeout(t._t);
+    t._t = setTimeout(()=>t.classList.remove("on"), 3200);
+  }
+
   /* ================= PUBLICAR ================= */
   function montarLista(){
     const lista = [];
     PRODUTOS.forEach(p=>{
       if(removidas.has(p.i)) return;
-      const e0 = edicoes[p.i] || {c:p.c, n:p.n, s:p.s, d:p.d, m:p.m, co:p.co};
+      const e0 = dadosPeca(p);
       const item = {c:e0.c, n:e0.n||"", i:p.i};
       if(e0.s) item.s = e0.s;
+      if(e0.d) item.d = e0.d;
+      if(e0.mt && e0.mt.length) item.mt = e0.mt;
+      if(e0.co && e0.co.length) item.co = e0.co;
+      if(e0.qc && e0.qc > 1)    item.qc = e0.qc;
+      if(e0.cb && e0.cb.length) item.cb = e0.cb;
+      if(e0.e === 0)            item.e = 0;
       if(p.r)  item.r = 1;
       lista.push(item);
     });
@@ -1293,15 +1373,8 @@
     const original = btn.textContent;
     btn.disabled = true;
     try{
-      // 1) fotos novas do catálogo
-      let feitas = 0;
-      for(const n of novas){
-        btn.textContent = "Enviando foto " + (++feitas) + " de " + novas.length + "…";
-        await enviar("/api/admin/foto?nome=" + encodeURIComponent("p"+n.id+".jpg"),
-                     {method:"POST", body:n.full});
-        await enviar("/api/admin/foto?nome=" + encodeURIComponent("t/p"+n.id+".jpg"),
-                     {method:"POST", body:n.thumb});
-      }
+      // 1) peças: fotos novas + a lista
+      await gravarCatalogo(m => { btn.textContent = m; });
 
       // 2) fotos trocadas nas páginas
       const pub = window.__pub || {fotos:{},textos:{},ocultos:{},novos:{},seo:{}};
@@ -1351,11 +1424,6 @@
       Object.entries(ocultos).forEach(([pag, set])=>{ if(set.size) pub.ocultos[pag] = [...set]; });
 
       // 6) gravar
-      btn.textContent = "Salvando catálogo…";
-      await enviar("/api/admin/catalogo", {
-        method:"PUT", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({categorias: CATEGORIAS, produtos: montarLista(), config: config})
-      });
       btn.textContent = "Salvando páginas…";
       await enviar("/api/admin/paginas", {
         method:"PUT", headers:{"Content-Type":"application/json"}, body: JSON.stringify(pub)
@@ -1367,9 +1435,7 @@
         "(ou com Ctrl+F5) para ver — a aba normal pode mostrar a versão guardada em cache.", "ok");
 
       // recarrega o estado a partir do que ficou salvo
-      novas.length = 0; removidas.clear();
-      [edicoes, trocas, novosCards].forEach(o=>Object.keys(o).forEach(x=>delete o[x]));
-      await carregarCatalogo();
+      [trocas, novosCards].forEach(o=>Object.keys(o).forEach(x=>delete o[x]));
       montarTudo();
       window.scrollTo({top:0, behavior:"smooth"});
 
