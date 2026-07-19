@@ -166,7 +166,11 @@
     return new URLSearchParams(location.search).get("p");
   };
 
-  let LISTA = PRODUTOS.slice(), CATS = CATEGORIAS.slice();
+  // Duas fontes: a lista que veio no repositório e a versão viva no servidor.
+  // Qualquer uma pode estar desatualizada, então consultamos as duas antes de
+  // dizer que a peça não existe.
+  let LISTA = (typeof PRODUTOS !== "undefined" && Array.isArray(PRODUTOS)) ? PRODUTOS.slice() : [];
+  let CATS  = (typeof CATEGORIAS !== "undefined" && Array.isArray(CATEGORIAS)) ? CATEGORIAS.slice() : [];
 
   function monta(p){
     const nome = (p.n && p.n.trim()) ? p.n.trim() : "Peça sob encomenda";
@@ -276,28 +280,50 @@
     return p ? monta(p) : null;
   }
 
-  function render(){
-    const it = achar();
-    if(!it){
-      $("#pd").innerHTML = '<div style="grid-column:1/-1;padding:60px 0;text-align:center">'+
-        '<h1 style="font-size:26px;margin:0 0 10px">Peça não encontrada</h1>'+
-        '<p style="color:var(--muted);margin:0 0 22px">Ela pode ter saído do catálogo.</p>'+
-        '<a href="catalogo.html" class="btn btn-primary btn-lg">Ver o catálogo</a></div>';
-      $("#migNome").textContent = "Peça";
-      return;
-    }
-    pintar(it);
+  function naoAchou(id){
+    $("#pd").innerHTML =
+      '<div style="grid-column:1/-1;padding:56px 0;text-align:center">'+
+      '<h1 style="font-size:26px;margin:0 0 10px">Peça não encontrada</h1>'+
+      '<p style="color:var(--muted);margin:0 0 8px">Ela pode ter saído do catálogo.</p>'+
+      '<p style="color:var(--muted-l);font-size:12.5px;margin:0 0 24px">'+
+      'código procurado: '+(id ? "OOMM-"+String(id).padStart(3,"0") : "nenhum")+
+      ' · peças carregadas: '+LISTA.length+'</p>'+
+      '<a href="/catalogo.html" class="btn btn-primary btn-lg">Ver o catálogo</a></div>';
+    $("#migNome").textContent = "Peça";
   }
 
-  render();
+  function render(){
+    const id = idAtual();
+    const p = id ? LISTA.find(x=>String(x.i)===String(id)) : null;
+    if(p){ pintar(monta(p)); return true; }
+    return false;
+  }
 
-  // versão viva do catálogo
-  fetch("/api/catalogo", {cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{
-    if(!d || !Array.isArray(d.produtos) || !d.produtos.length) return;
-    LISTA = d.produtos;
-    if(Array.isArray(d.categorias) && d.categorias.length) CATS = d.categorias;
-    render();
-  }).catch(()=>{});
+  async function iniciar(){
+    if(render()) { atualizarDepois(); return; }   // achou na lista local
+    const ok = await buscarApi();
+    if(ok && render()) return;
+    naoAchou(idAtual());
+  }
+
+  async function buscarApi(){
+    try{
+      const r = await fetch("/api/catalogo", {cache:"no-store"});
+      if(!r.ok) return false;
+      const d = await r.json();
+      if(!d || !Array.isArray(d.produtos) || !d.produtos.length) return false;
+      LISTA = d.produtos;
+      if(Array.isArray(d.categorias) && d.categorias.length) CATS = d.categorias;
+      return true;
+    }catch(e){ return false; }
+  }
+
+  // já achamos na lista local, mas a do servidor pode ter nome e cores mais novos
+  async function atualizarDepois(){
+    if(await buscarApi()) render();
+  }
+
+  iniciar();
 })();
 </script>
 </body>
