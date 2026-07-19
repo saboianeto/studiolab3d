@@ -4,6 +4,9 @@
 (function () {
   "use strict";
   var ESPERA = 120000;                 // 2 minutos
+  // Link padrão da comunidade. Dá para trocar no painel, em Textos do site.
+  // Campo apagado (vazio) desliga o convite; campo nunca preenchido usa este.
+  var PADRAO = "https://chat.whatsapp.com/Ln4poGVtnyM3Ok3ftarS9h";
   var K_TEMPO = "oomm_tempo";
   var K_VISTO = "oomm_convite_visto";
 
@@ -57,11 +60,17 @@
   fetch("/api/catalogo", { cache: "no-store" })
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (d) {
-      var link = d && d.config && d.config.grupoZap;
-      if (!link) return;                       // sem link cadastrado, não incomoda ninguém
+      var cfg = (d && d.config) || {};
+      var link = (cfg.grupoZap === undefined) ? PADRAO : cfg.grupoZap;
+      if (!link) return;                       // campo apagado de propósito: não incomoda ninguém
       var contador = setInterval(function () {
         if (somar() >= ESPERA) { clearInterval(contador); mostrar(link); }
       }, 1000);
     })
-    .catch(function () {});
+    .catch(function () {
+      // servidor fora do ar: ainda assim vale convidar
+      var contador = setInterval(function () {
+        if (somar() >= ESPERA) { clearInterval(contador); mostrar(PADRAO); }
+      }, 1000);
+    });
 })();
