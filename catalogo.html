@@ -101,7 +101,8 @@
       <span class="tagc" id="lbCat" style="align-self:flex-start"></span>
       <p id="lbTexto">Produzimos peças sob encomenda e temos algumas pronta-entrega. Personalização em 3D com filamentos PLA, ABS e PETG. Tudo para tornar seus produtos personalizados com qualidade.<br><br>Entre em contato para produzir sua peça em 3D com o seu toque e a sua cor.</p>
       <a id="lbWa" class="btn btn-primary btn-lg" href="#" target="_blank" rel="noopener">Pedir orçamento desta peça</a>
-      <button id="lbLink" class="btn btn-ghost" type="button" style="width:100%">Copiar link desta peça</button>
+      <a id="lbSaiba" class="btn btn-ghost saiba" href="#">Saiba mais sobre esta peça</a>
+      <button id="lbLink" class="btn-texto" type="button" style="width:100%">Copiar link desta peça</button>
     </div>
   </div>
 </div>
@@ -182,6 +183,7 @@
 
 <script src="script.js"></script>
 <script src="produtos.js"></script>
+<script src="favoritos.js"></script>
 <script>
 (function(){
   const WA = "https://wa.me/5511992048512?text=";
@@ -259,6 +261,20 @@
       barra.appendChild(b);
     });
 
+    // meus favoritos
+    const nf = Favoritos.quantos();
+    if(nf){
+      const sep0=document.createElement("span"); sep0.className="filtro-sep"; barra.appendChild(sep0);
+      const bf=document.createElement("button");
+      bf.className="chipf selo-f"; bf.type="button"; bf.id="chipFav";
+      bf.setAttribute("aria-selected", catAtual==="favoritos");
+      bf.innerHTML = '♥ Meus favoritos<span class="qt">'+nf+'</span>';
+      bf.addEventListener("click", ()=>{
+        catAtual = (catAtual==="favoritos") ? "todos" : "favoritos"; pagina=1; render();
+      });
+      barra.appendChild(bf);
+    }
+
     // chips de selo — só aparecem se houver peças marcadas
     const comSelo = Object.keys(SELOS).filter(id => itens.some(i=>i.selo===id));
     if(comSelo.length){
@@ -305,7 +321,12 @@
   }
 
   function render(){
-    visiveis = catAtual==="todos" ? itens.slice() : itens.filter(i=>i.cat===catAtual);
+    if(catAtual==="favoritos"){
+      const f = Favoritos.lista();
+      visiveis = itens.filter(i=>f.indexOf(i.id)!==-1);
+    } else {
+      visiveis = catAtual==="todos" ? itens.slice() : itens.filter(i=>i.cat===catAtual);
+    }
     if(seloAtual) visiveis = visiveis.filter(i=>i.selo===seloAtual);
     const totalPg = Math.max(1, Math.ceil(visiveis.length/POR_PAGINA));
     if(pagina>totalPg) pagina = totalPg;
@@ -317,7 +338,9 @@
 
     grade.innerHTML = "";
     if(!lote.length){
-      grade.innerHTML = '<div class="cat-empty">Nada nesta categoria ainda. Volte em breve — o estúdio não para.</div>';
+      grade.innerHTML = (catAtual==="favoritos"
+        ? '<div class="cat-empty">Você ainda não salvou nenhuma peça. Toque no ♡ das que gostar — elas ficam guardadas aqui neste aparelho.</div>'
+        : '<div class="cat-empty">Nada nesta categoria ainda. Volte em breve — o estúdio não para.</div>');
     }
     lote.forEach((it, k)=>{
       const el = document.createElement("button");
@@ -327,6 +350,8 @@
       el.innerHTML =
         '<div class="sh"><img src="'+it.thumb+'" loading="lazy" decoding="async" alt="'+it.nome+' em impressão 3D — '+it.cod+'">'+
           (it.selo && SELOS[it.selo] ? '<span class="selo selo-'+it.selo+'">'+SELOS[it.selo]+'</span>' : '')+
+          '<span class="fav-btn'+(Favoritos.tem(it.id)?" on":"")+'" role="button" tabindex="0" '+
+          'aria-label="Salvar '+it.cod+' nos favoritos">'+(Favoritos.tem(it.id)?"♥":"♡")+'</span>'+
           '<span class="cat-add" role="link" tabindex="0" aria-label="Pedir a peça '+it.cod+' no WhatsApp">'+
             '<span class="tip">Pedir no WhatsApp</span>+</span>'+
         '</div>'+
@@ -334,6 +359,18 @@
           (it.desc ? '<div class="rsm">'+it.desc.split("\n")[0].slice(0,70)+'</div>' : '')+
           '<div class="cod">'+it.cod+'</div></div>'+
         '<span class="tagc">'+(nomeCat[it.cat]||"peça")+'</span></div>';
+      const cor = el.querySelector(".fav-btn");
+      function favoritar(e){
+        e.stopPropagation(); e.preventDefault();
+        const dentro = Favoritos.alternar(it.id);
+        cor.textContent = dentro ? "♥" : "♡";
+        cor.classList.toggle("on", dentro);
+        atualizaChipFav();
+        if(catAtual === "favoritos") render();
+      }
+      cor.addEventListener("click", favoritar);
+      cor.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" ") favoritar(e); });
+
       const mais = el.querySelector(".cat-add");
       function pedir(e){ e.stopPropagation(); e.preventDefault(); window.open(linkWa(it), "_blank", "noopener"); }
       mais.addEventListener("click", pedir);
@@ -359,6 +396,8 @@
       : "";
     sincronizaHash();
   }
+
+  function atualizaChipFav(){ montarFiltros(); }
 
   function numeros(total){
     if(total<=7) return Array.from({length:total},(_,i)=>i+1);
@@ -392,6 +431,7 @@
     cx.innerHTML = it.desc
       ? it.desc.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/\n/g,"<br>")
       : TEXTO_PADRAO;
+    document.getElementById("lbSaiba").href = caminhoPeca(it);
     document.getElementById("lbWa").href = linkWa(it);
     const bl = document.getElementById("lbLink");
     bl.textContent = "Copiar link desta peça";

@@ -920,3 +920,26 @@ const SUGESTOES = {
   "Artigo religioso personalizado: escolha a cor, o tamanho e a frase que vai gravada na base."
  ]
 };
+
+const PALETA = {
+ "branco": "#F2F0EC",
+ "preto": "#1E1E20",
+ "vermelho": "#D3312C",
+ "rosa": "#EE6FA0",
+ "pink": "#E5187F",
+ "laranja": "#F07C1E",
+ "amarelo": "#F2C230",
+ "verde": "#2E9E52",
+ "verde-agua": "#33B5A6",
+ "azul": "#2668C4",
+ "azul-claro": "#63B3ED",
+ "roxo": "#7B4FBF",
+ "lilas": "#B79BE0",
+ "marrom": "#7A5238",
+ "cinza": "#9AA0A6",
+ "dourado": "#C6A24A",
+ "prata": "#C2C6CB",
+ "transparente": "#E8EEF2"
+};
+
+const MATERIAIS = ["","PLA","PLA silk","PETG","ABS","TPU flexível","PLA + PETG"];

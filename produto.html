@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-VM5P75HZSE"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-VM5P75HZSE');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Peça · OOMM Studio</title>
+<meta name="description" content="Peça em impressão 3D personalizada. Escolha cor, tamanho e acabamento. OOMM Studio, São Paulo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#33222A">
+<link rel="canonical" href="https://studiolab3d.com.br/catalogo.html">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="product">
+<meta property="og:site_name" content="OOMM Studio">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:title" content="Peça · OOMM Studio">
+<meta property="og:description" content="Peça em impressão 3D personalizada.">
+<meta property="og:url" content="https://studiolab3d.com.br/catalogo.html">
+<meta property="og:image" content="https://studiolab3d.com.br/img/og-image.jpg">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+<header class="nav">
+  <div class="wrap nav-in">
+    <a href="index.html" class="brand">OOMM<span class="dot">.</span>STUDIO <small>studio 3d</small></a>
+    <button class="menu-toggle" aria-label="Abrir menu" id="mt"><span></span></button>
+    <nav class="links" id="links">
+      <a href="index.html">Início</a>
+      <a href="catalogo.html" class="active">Catálogo</a>
+      <a href="corporativo.html">Brindes</a>
+      <a href="educacional.html">Eventos</a>
+      <a href="casa.html">Religiosos</a>
+      <a href="festas.html">Festas</a>
+      <a href="conecte.html">Conecte-se</a>
+      <a href="https://wa.me/5511992048512" class="btn btn-primary" target="_blank" rel="noopener">Orçamento</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <div class="wrap">
+    <nav class="migalhas" aria-label="Você está aqui">
+      <a href="index.html">Início</a> <span>›</span>
+      <a href="catalogo.html">Catálogo</a> <span>›</span>
+      <a href="#" id="migCat">Peças</a> <span>›</span>
+      <strong id="migNome">Carregando…</strong>
+    </nav>
+
+    <div class="pd" id="pd">
+      <div class="pd-foto">
+        <div class="pd-quadro" id="quadro">
+          <img id="pFoto" src="" alt="" loading="eager">
+          <span class="selo" id="pSelo" hidden></span>
+          <button class="pd-lupa" id="pLupa" type="button" aria-label="Ampliar foto">Ampliar</button>
+        </div>
+        <p class="pd-obs">Foto da peça real, produzida no estúdio. Cores e tamanho podem ser ajustados.</p>
+      </div>
+
+      <div class="pd-info">
+        <p class="pd-cod"><span id="pCod">—</span> <span class="pd-status">Produzido sob encomenda</span></p>
+        <h1 id="pNome">Carregando…</h1>
+        <p class="pd-desc" id="pDesc"></p>
+
+        <div class="pd-bloco" id="blocoCores" hidden>
+          <h3>Cores disponíveis</h3>
+          <div class="pd-cores" id="pCores"></div>
+          <p class="pd-mini">Outras cores sob consulta — trabalhamos com mais de 30 filamentos.</p>
+        </div>
+
+        <div class="pd-bloco">
+          <h3>O que você precisa saber</h3>
+          <ul class="pd-lista" id="pLista"></ul>
+        </div>
+      </div>
+
+      <aside class="pd-acao">
+        <div class="pd-caixa">
+          <p class="pd-prazo"><strong>Sob encomenda</strong><br>Prazo e valor combinados na conversa.</p>
+          <a id="btnZap" class="btn btn-primary btn-lg" href="#" target="_blank" rel="noopener">Falar no WhatsApp</a>
+          <button id="btnFav" class="btn btn-ghost btn-lg" type="button">♡ &nbsp;Salvar nos favoritos</button>
+          <button id="btnLink" class="btn-texto" type="button">Copiar link desta peça</button>
+          <ul class="pd-garantias">
+            <li><b>A partir de 1 unidade.</b> Sem pedido mínimo.</li>
+            <li><b>Prova antes do lote.</b> Você aprova a peça antes da tiragem.</li>
+            <li><b>Envio para todo o Brasil.</b> Retirada em São Paulo.</li>
+          </ul>
+          <p class="pd-vendedor">Produzido por <b>OOMM Studio</b> · São Paulo</p>
+        </div>
+      </aside>
+    </div>
+
+    <section class="pd-relacionados" id="relacionados" hidden>
+      <div class="section-head"><h2>Peças parecidas</h2></div>
+      <div class="cat-grid" id="gradeRel"></div>
+    </section>
+  </div>
+</main>
+
+<div class="lb-ov" id="lb" role="dialog" aria-modal="true" aria-label="Foto ampliada">
+  <div class="lb-box" style="grid-template-columns:1fr;max-width:720px">
+    <button class="lb-close" id="lbClose" aria-label="Fechar">×</button>
+    <div class="im"><img id="lbImg" src="" alt=""></div>
+  </div>
+</div>
+
+<footer class="ft">
+  <div class="wrap">
+    <div class="ft-top">
+      <div>
+        <div class="brand">OOMM<span style="color:var(--teal)">.</span>STUDIO <small class="mono">studio 3d</small></div>
+        <p class="desc">Brindes corporativos e peças personalizadas em impressão 3D, sob medida para empresas, escolas, casa e festas. São Paulo · envio para todo o Brasil.</p>
+      </div>
+      <div>
+        <h5>Linhas</h5>
+        <a href="catalogo.html">Catálogo completo</a>
+        <a href="corporativo.html">Brindes sob encomenda</a>
+        <a href="educacional.html">Kits para eventos</a>
+        <a href="casa.html">Artigos religiosos</a>
+        <a href="festas.html">Festas &amp; celebrações</a>
+      </div>
+      <div>
+        <h5>Contato &amp; redes</h5>
+        <a href="https://wa.me/5511992048512" target="_blank" rel="noopener">WhatsApp · (11) 99204-8512</a>
+        <a href="mailto:comercial@studiolab3d.com.br">comercial@studiolab3d.com.br</a>
+        <a href="https://instagram.com/outofmymind_3d" target="_blank" rel="noopener">Instagram · @outofmymind_3d</a>
+      </div>
+    </div>
+    <div class="ft-bot"><span>© 2026 OOMM Studio · studiolab3d.com.br</span><span>Do conceito ao detalhe.</span></div>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+<script src="produtos.js"></script>
+<script src="favoritos.js"></script>
+<script src="contexto.js" defer></script>
+<script src="metricas.js" defer></script>
+<script>
+(function(){
+  "use strict";
+  const WA = "https://wa.me/5511992048512?text=";
+  const $ = s => document.querySelector(s);
+  const pad2 = n => String(n).padStart(2,"0");
+  const SELOS = {"mais-vendidos":"Mais vendidos","preco-baixo":"Preço baixo",
+                 "destaque":"Destaque do mês","personalizado":"Personalizado"};
+
+  const apelido = t => String(t||"")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,60).replace(/-+$/,"");
+
+  const idAtual = () => {
+    if(window.__PECA) return String(window.__PECA);
+    const m = location.pathname.match(/\/peca\/(?:.*-)?(\d{1,5})\/?$/);
+    if(m) return m[1];
+    return new URLSearchParams(location.search).get("p");
+  };
+
+  let LISTA = PRODUTOS.slice(), CATS = CATEGORIAS.slice();
+
+  function monta(p){
+    const nome = (p.n && p.n.trim()) ? p.n.trim() : "Peça sob encomenda";
+    return {
+      id:p.i, cat:p.c, selo:p.s||"", desc:(p.d||"").trim(),
+      cores: Array.isArray(p.co) ? p.co : [],
+      material: p.m || "",
+      nome, cod:"OOMM-"+String(p.i).padStart(3,"0"),
+      thumb: p.r ? "/fotos/t/p"+p.i+".jpg" : "img/catalogo/t/p"+pad2(p.i)+".jpg",
+      full:  p.r ? "/fotos/p"+p.i+".jpg"   : "img/catalogo/p"+pad2(p.i)+".jpg",
+      link: "/peca/"+(p.n && p.n.trim() ? apelido(p.n)+"-" : "peca-")+p.i
+    };
+  }
+
+  const PALETA = {
+    branco:"#F2F0EC", preto:"#1E1E20", vermelho:"#D3312C", rosa:"#EE6FA0",
+    pink:"#E5187F", laranja:"#F07C1E", amarelo:"#F2C230", verde:"#2E9E52",
+    "verde-agua":"#33B5A6", azul:"#2668C4", "azul-claro":"#63B3ED",
+    roxo:"#7B4FBF", lilas:"#B79BE0", marrom:"#7A5238", cinza:"#9AA0A6",
+    dourado:"#C6A24A", prata:"#C2C6CB", transparente:"#E8EEF2"
+  };
+
+  function pintar(it){
+    document.title = it.nome + " · " + it.cod + " · OOMM Studio";
+    $("#migNome").textContent = it.nome;
+    const cat = CATS.find(c=>c.id===it.cat);
+    $("#migCat").textContent = cat ? cat.nome : "Peças";
+    $("#migCat").href = "catalogo.html#" + it.cat;
+
+    $("#pFoto").src = it.full;
+    $("#pFoto").alt = it.nome + " em impressão 3D — " + it.cod;
+    $("#pCod").textContent = it.cod;
+    $("#pNome").textContent = it.nome;
+    $("#pDesc").textContent = it.desc ||
+      "Produzimos peças sob encomenda e temos algumas pronta-entrega. Personalização em 3D com filamentos PLA, ABS e PETG. Fale com a gente para produzir a sua com o seu toque e a sua cor.";
+
+    if(it.selo && SELOS[it.selo]){
+      const sl = $("#pSelo");
+      sl.textContent = SELOS[it.selo];
+      sl.className = "selo selo-"+it.selo;
+      sl.hidden = false;
+    }
+
+    if(it.cores.length){
+      $("#blocoCores").hidden = false;
+      $("#pCores").innerHTML = it.cores.map(c=>
+        '<span class="cor" title="'+c+'"><i style="background:'+(PALETA[c]||"#CCC")+'"></i>'+
+        c.replace(/-/g," ")+'</span>').join("");
+    }
+
+    $("#pLista").innerHTML = [
+      ["Produção", "sob encomenda, a partir de 1 unidade"],
+      ["Material", it.material || "PLA, ABS ou PETG conforme o uso"],
+      ["Personalização", "cor, tamanho, nome, data ou logo"],
+      ["Prazo", "combinado na conversa, conforme a tiragem"],
+      ["Envio", "todo o Brasil · retirada em São Paulo"]
+    ].map(([a,b])=>'<li><b>'+a+':</b> '+b+'</li>').join("");
+
+    const msg = "Olá! Gostaria de um orçamento da peça " + it.cod + " (" + it.nome + ").\n" +
+                location.origin + it.link;
+    $("#btnZap").href = WA + encodeURIComponent(msg);
+
+    // favoritos
+    const fav = $("#btnFav");
+    const sync = ()=>{
+      const dentro = Favoritos.tem(it.id);
+      fav.innerHTML = (dentro ? "♥" : "♡") + " &nbsp;" + (dentro ? "Salvo nos favoritos" : "Salvar nos favoritos");
+      fav.classList.toggle("ativo", dentro);
+    };
+    fav.onclick = ()=>{ Favoritos.alternar(it.id); sync(); };
+    sync();
+
+    $("#btnLink").onclick = async ()=>{
+      const url = location.origin + it.link;
+      try{ await navigator.clipboard.writeText(url); $("#btnLink").textContent = "Link copiado ✓"; }
+      catch(e){ window.prompt("Copie o link:", url); }
+      setTimeout(()=>{ $("#btnLink").textContent = "Copiar link desta peça"; }, 2200);
+    };
+
+    // ampliar
+    const lb = $("#lb");
+    const abrir = ()=>{ $("#lbImg").src = it.full; lb.classList.add("open"); document.body.style.overflow="hidden"; };
+    const fechar = ()=>{ lb.classList.remove("open"); document.body.style.overflow=""; };
+    $("#quadro").onclick = abrir;
+    $("#pLupa").onclick = e=>{ e.stopPropagation(); abrir(); };
+    $("#lbClose").onclick = fechar;
+    lb.onclick = e=>{ if(e.target===lb) fechar(); };
+    document.addEventListener("keydown", e=>{ if(e.key==="Escape") fechar(); });
+
+    // parecidas
+    const irmas = LISTA.map(monta).filter(x=>x.cat===it.cat && x.id!==it.id).slice(0,4);
+    if(irmas.length){
+      $("#relacionados").hidden = false;
+      $("#gradeRel").innerHTML = irmas.map(x=>
+        '<a class="cat-card" href="'+x.link+'" style="display:block;text-decoration:none">'+
+        '<div class="sh"><img src="'+x.thumb+'" loading="lazy" alt="'+x.nome+'">'+
+        (x.selo && SELOS[x.selo] ? '<span class="selo selo-'+x.selo+'">'+SELOS[x.selo]+'</span>' : '')+
+        '</div><div class="meta"><div><div class="nm">'+x.nome+'</div>'+
+        '<div class="cod">'+x.cod+'</div></div></div></a>').join("");
+    }
+  }
+
+  function achar(){
+    const id = idAtual();
+    if(!id) return null;
+    const p = LISTA.find(x=>String(x.i)===String(id));
+    return p ? monta(p) : null;
+  }
+
+  function render(){
+    const it = achar();
+    if(!it){
+      $("#pd").innerHTML = '<div style="grid-column:1/-1;padding:60px 0;text-align:center">'+
+        '<h1 style="font-size:26px;margin:0 0 10px">Peça não encontrada</h1>'+
+        '<p style="color:var(--muted);margin:0 0 22px">Ela pode ter saído do catálogo.</p>'+
+        '<a href="catalogo.html" class="btn btn-primary btn-lg">Ver o catálogo</a></div>';
+      $("#migNome").textContent = "Peça";
+      return;
+    }
+    pintar(it);
+  }
+
+  render();
+
+  // versão viva do catálogo
+  fetch("/api/catalogo", {cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{
+    if(!d || !Array.isArray(d.produtos) || !d.produtos.length) return;
+    LISTA = d.produtos;
+    if(Array.isArray(d.categorias) && d.categorias.length) CATS = d.categorias;
+    render();
+  }).catch(()=>{});
+})();
+</script>
+</body>
+</html>

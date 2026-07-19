@@ -29,6 +29,10 @@ export default {
       if (p === "/sitemap.xml")         return await sitemap(request, env);
       if (p.startsWith("/api/admin/"))  return await rotaAdmin(request, env, url);
       if (p.startsWith("/fotos/"))      return await servirFoto(request, env, url, ctx);
+      // O molde não deve ser acessado direto — sem peça, não há o que mostrar.
+      if (p === "/produto.html" && !url.searchParams.get("p"))
+        return new Response(null, { status: 302, headers: { Location: "/catalogo.html" } });
+
       if (p.startsWith("/peca/") || (p === "/catalogo.html" && url.searchParams.get("p"))) {
         const r = await paginaDaPeca(request, env, url, p);
         if (r) return r;                       // não achou a peça: segue o fluxo normal
@@ -181,7 +185,7 @@ async function paginaDaPeca(request, env, url, p) {
 
 async function montarPagina(request, env, o) {
   const alvo = new URL(request.url);
-  alvo.pathname = "/catalogo.html";
+  alvo.pathname = "/produto.html";
   alvo.search = "";
   const html = await env.ASSETS.fetch(new Request(alvo.toString(), request));
 
@@ -443,7 +447,8 @@ async function sitemap(request, env) {
   const base = new URL(request.url).origin;
   const hoje = new Date().toISOString().slice(0, 10);
   const paginas = ["", "catalogo.html", "corporativo.html", "educacional.html",
-                   "casa.html", "festas.html", "conecte.html"];
+                   "casa.html", "festas.html", "conecte.html"];   // produto.html não entra:
+                   // ele só existe como molde das páginas /peca/...
 
   let itens = paginas.map(p =>
     "<url><loc>" + base + "/" + p + "</loc><lastmod>" + hoje +
