@@ -29,6 +29,10 @@ export default {
       if (p === "/sitemap.xml")         return await sitemap(request, env);
       if (p.startsWith("/api/admin/"))  return await rotaAdmin(request, env, url);
       if (p.startsWith("/fotos/"))      return await servirFoto(request, env, url, ctx);
+      if (p.startsWith("/peca/") || (p === "/catalogo.html" && url.searchParams.get("p"))) {
+        const r = await paginaDaPeca(request, env, url, p);
+        if (r) return r;                       // não achou a peça: segue o fluxo normal
+      }
     } catch (erro) {
       return json({ erro: String(erro && erro.message || erro) }, 500);
     }
@@ -41,66 +45,6 @@ export default {
     if (!tipo.includes("text/html")) return resposta;
 
     const pagina = nomeDaPagina(p);
-
-    // ------------------------------------------------------------------
-    // Endereço próprio de cada peça: /peca/chaveiro-flor-com-inicial-66
-    // O número no fim é a identidade real; o texto antes dele é só para o
-    // Google e para o olho humano. Assim, mudar o nome da peça não quebra
-    // nenhum link já compartilhado — apenas redireciona para o novo texto.
-    // ------------------------------------------------------------------
-    let idPeca = null, viaCaminho = false;
-    if (p.startsWith("/peca/")) {
-      const m = p.slice(6).match(/(?:^|-)(\d{1,5})\/?$/);
-      if (m) { idPeca = m[1]; viaCaminho = true; }
-    } else if (pagina === "catalogo.html") {
-      idPeca = url.searchParams.get("p");
-    }
-
-    if (idPeca && /^\d{1,5}$/.test(idPeca)) {
-      const cat  = await lerJSON(env, "catalogo", null);
-      const peca = cat && Array.isArray(cat.produtos)
-        ? cat.produtos.find(x => String(x.i) === idPeca) : null;
-
-      if (peca) {
-        const nome    = (peca.n && peca.n.trim()) ? peca.n.trim() : "";
-        const caminho = "/peca/" + (nome ? apelido(nome) + "-" : "peca-") + peca.i;
-
-        // endereço antigo ou texto desatualizado -> manda para o certo, de vez
-        if (p !== caminho) {
-          return new Response(null, { status: 301, headers: { Location: caminho } });
-        }
-
-        const base   = url.origin;
-        const foto   = base + (peca.r ? "/fotos/p" + peca.i + ".jpg"
-                                      : "/img/catalogo/p" + String(peca.i).padStart(2, "0") + ".jpg");
-        const cod    = "OOMM-" + String(peca.i).padStart(3, "0");
-        const rotulo = nome || "Peça sob encomenda";
-        const desc   = (peca.d && peca.d.trim())
-          ? peca.d.trim().slice(0, 200)
-          : rotulo + " em impressão 3D. Personalizamos cor, tamanho e acabamento. OOMM Studio, São Paulo.";
-        const titulo = rotulo + " · " + cod + " · OOMM Studio";
-
-        const alvo = new URL(request.url);
-        alvo.pathname = "/catalogo.html";
-        alvo.search = "";
-        const base_html = await env.ASSETS.fetch(new Request(alvo.toString(), request));
-
-        return new HTMLRewriter()
-          .on("title",                           { element(e) { e.setInnerContent(titulo, { html: false }); } })
-          .on('meta[name="description"]',        { element(e) { e.setAttribute("content", desc); } })
-          .on('link[rel="canonical"]',           { element(e) { e.setAttribute("href", base + caminho); } })
-          .on('meta[property="og:title"]',       { element(e) { e.setAttribute("content", titulo); } })
-          .on('meta[property="og:description"]', { element(e) { e.setAttribute("content", desc); } })
-          .on('meta[property="og:image"]',       { element(e) { e.setAttribute("content", foto); } })
-          .on('meta[property="og:url"]',         { element(e) { e.setAttribute("content", base + caminho); } })
-          .on("head", { element(e) {
-            e.append('<script>window.__PECA=' + JSON.stringify(peca.i) + ';</script>', { html: true });
-          }})
-          .transform(base_html);
-      }
-
-      if (viaCaminho) return new Response(null, { status: 302, headers: { Location: "/catalogo.html" } });
-    }
 
     const edicoes = await lerJSON(env, "paginas", null);
     if (!edicoes) return resposta;
@@ -185,6 +129,84 @@ export default {
     return rw.transform(resposta);
   }
 };
+
+/* ------------------------------------------------------- página de uma peça */
+
+async function paginaDaPeca(request, env, url, p) {
+  // Endereço próprio de cada peça: /peca/chaveiro-flor-com-inicial-66
+  // O número no fim é a identidade real; o texto antes dele é só para o Google e
+  // para o olho humano. Mudar o nome da peça não quebra link já compartilhado —
+  // apenas redireciona para o texto novo.
+  let idPeca = null, viaCaminho = false;
+  if (p.startsWith("/peca/")) {
+    const m = p.slice(6).match(/(?:^|-)(\d{1,5})\/?$/);
+    if (m) { idPeca = m[1]; viaCaminho = true; }
+  } else if (p === "/catalogo.html") {
+    idPeca = url.searchParams.get("p");
+  }
+  if (!idPeca || !/^\d{1,5}$/.test(idPeca)) return null;
+
+  const cat  = await lerJSON(env, "catalogo", null);
+  const peca = cat && Array.isArray(cat.produtos)
+    ? cat.produtos.find(x => String(x.i) === idPeca) : null;
+
+  const base = url.origin;
+
+  // Peça conhecida: endereço definitivo, com título, descrição e foto próprios.
+  if (peca) {
+    const nome    = (peca.n && peca.n.trim()) ? peca.n.trim() : "";
+    const caminho = "/peca/" + (nome ? apelido(nome) + "-" : "peca-") + peca.i;
+    if (p !== caminho) return new Response(null, { status: 301, headers: { Location: caminho } });
+
+    const foto = base + (peca.r ? "/fotos/p" + peca.i + ".jpg"
+                                : "/img/catalogo/p" + String(peca.i).padStart(2, "0") + ".jpg");
+    const cod    = "OOMM-" + String(peca.i).padStart(3, "0");
+    const rotulo = nome || "Peça sob encomenda";
+    const desc   = (peca.d && peca.d.trim())
+      ? peca.d.trim().slice(0, 200)
+      : rotulo + " em impressão 3D. Personalizamos cor, tamanho e acabamento. OOMM Studio, São Paulo.";
+    return montarPagina(request, env, {
+      idPeca: peca.i, titulo: rotulo + " · " + cod + " · OOMM Studio",
+      desc, foto, canonical: base + caminho
+    });
+  }
+
+  // Catálogo ainda não publicado pelo painel: entrega a página assim mesmo e
+  // deixa o navegador procurar a peça na lista que veio no repositório.
+  // Melhor uma página que abre sem prévia bonita do que um 404.
+  if (viaCaminho) return montarPagina(request, env, { idPeca: Number(idPeca) });
+
+  return null;
+}
+
+async function montarPagina(request, env, o) {
+  const alvo = new URL(request.url);
+  alvo.pathname = "/catalogo.html";
+  alvo.search = "";
+  const html = await env.ASSETS.fetch(new Request(alvo.toString(), request));
+
+  let rw = new HTMLRewriter()
+    // A página vive em /catalogo.html mas é servida em /peca/... Sem esta linha,
+    // "img/foto.jpg" viraria "/peca/img/foto.jpg" e nada carregaria.
+    .on("head", { element(e) {
+      e.prepend('<base href="/">', { html: true });
+      e.append('<script>window.__PECA=' + JSON.stringify(o.idPeca) + ';</script>', { html: true });
+    }});
+
+  if (o.titulo) {
+    rw = rw.on("title",                      { element(e) { e.setInnerContent(o.titulo, { html: false }); } })
+           .on('meta[property="og:title"]',  { element(e) { e.setAttribute("content", o.titulo); } });
+  }
+  if (o.desc) {
+    rw = rw.on('meta[name="description"]',        { element(e) { e.setAttribute("content", o.desc); } })
+           .on('meta[property="og:description"]', { element(e) { e.setAttribute("content", o.desc); } });
+  }
+  if (o.foto)      rw = rw.on('meta[property="og:image"]', { element(e) { e.setAttribute("content", o.foto); } });
+  if (o.canonical) rw = rw.on('link[rel="canonical"]',     { element(e) { e.setAttribute("href", o.canonical); } })
+                          .on('meta[property="og:url"]',   { element(e) { e.setAttribute("content", o.canonical); } });
+
+  return rw.transform(html);
+}
 
 /* ---------------------------------------------------------------- catálogo */
 
