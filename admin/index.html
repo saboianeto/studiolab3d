@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Admin · OOMM Studio</title>
-<!-- ADMIN v12 · 19/07/2026 — sem tela de login: a proteção é do Cloudflare Access -->
+<!-- ADMIN v14 · 19/07/2026 — sem tela de login: a proteção é do Cloudflare Access -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{--ink:#2A2126;--paper:#F4ECE3;--card:#fff;--line:#E3D6C9;--teal:#A63E60;--teal-d:#9B3A58;
@@ -92,6 +92,81 @@
     .slot .mini{width:80px;height:80px}
     .slot > button{grid-column:1/-1}
   }
+
+  /* ============ NÚMEROS (tema escuro) ============ */
+  #p-num{--pn:#161A21;--pn2:#1E232C;--pn3:#2B313C;--pnt:#EDEFF3;--pnm:#8D96A6;
+    background:var(--pn);margin:0 -22px;padding:24px 22px 30px;border-radius:16px}
+  #p-num .num-topo{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:20px}
+  #p-num .num-topo .lbl{color:var(--pnm);font-size:14px}
+  #p-num .per{padding:7px 15px;border-radius:99px;border:1px solid var(--pn3);background:var(--pn2);
+    font-size:13.5px;font-weight:600;color:var(--pnm);cursor:pointer}
+  #p-num .per[aria-selected="true"]{background:#E5486F;border-color:#E5486F;color:#fff}
+
+  .painel-grade{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .bloco{background:var(--pn2);border-radius:15px;padding:17px 18px;min-width:0}
+  .bloco.largo{grid-column:span 2}
+  .bloco.cheio{grid-column:1/-1}
+  .bloco h4{margin:0 0 2px;font-size:14.5px;color:var(--pnt);font-weight:600}
+  .bloco .sub{font-size:12px;color:var(--pnm);margin:0 0 14px;line-height:1.4}
+  .bloco svg.g{display:block;width:100%;height:auto;overflow:visible}
+  .bloco .vazio{color:var(--pnm);font-size:13px;padding:22px 0;text-align:center}
+
+  /* cartão de número */
+  .kpi{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between}
+  .kpi .cab{display:flex;align-items:center;gap:10px;margin-bottom:12px;position:relative;z-index:2}
+  .kpi .ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;
+    justify-content:center;flex:none}
+  .kpi .ic svg{width:17px !important;height:17px !important;display:block}
+  .kpi .nome{font-size:12.5px;font-weight:600;color:var(--pnm);line-height:1.25}
+  .kpi .val{font-size:30px;font-weight:700;color:var(--pnt);letter-spacing:-.02em;line-height:1;
+    margin:0;position:relative;z-index:2}
+  .kpi .sub2{font-size:11.5px;color:var(--pnm);margin:6px 0 0;position:relative;z-index:2;line-height:1.35}
+  .kpi .spark{position:absolute;right:0;bottom:0;width:66%;height:40px;opacity:.7;z-index:1}
+
+  .leg{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--pnm);margin-top:12px}
+  .leg span{display:inline-flex;align-items:center;gap:6px}
+  .leg i{width:9px;height:9px;border-radius:2px;flex:none}
+
+  .funil{display:flex;flex-direction:column;gap:6px}
+  .funil .f{border-radius:9px;padding:11px 14px;color:#fff;display:flex;
+    justify-content:space-between;align-items:center;gap:10px}
+  .funil .f .t{font-size:13px;font-weight:600;line-height:1.2}
+  .funil .f .v{font-size:17px;font-weight:700;text-align:right;line-height:1.1}
+  .funil .f small{display:block;font-size:10.5px;font-weight:500;opacity:.82;margin-top:2px}
+  .nota{font-size:11.5px;color:var(--pnm);margin:11px 0 0;line-height:1.5}
+
+  .rosca{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .rosca svg{width:130px;flex:none}
+  .rosca .lg{flex:1;min-width:120px;display:flex;flex-direction:column;gap:8px}
+  .rosca .lg .it{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--pnt)}
+  .rosca .lg .it i{width:9px;height:9px;border-radius:2px;flex:none}
+  .rosca .lg .it .q{margin-left:auto;font-weight:700;color:var(--pnm)}
+
+  .cols{display:flex;align-items:flex-end;justify-content:space-around;gap:8px;height:132px;padding-top:22px}
+  .cols .c{flex:1;max-width:60px;display:flex;flex-direction:column;justify-content:flex-end;
+    height:100%;position:relative}
+  .cols .c .vl{position:absolute;bottom:calc(100% + 5px);width:100%;text-align:center;
+    font-size:11.5px;font-weight:700;color:var(--pnt)}
+  .cols .c .bar{width:100%;border-radius:6px 6px 0 0;min-height:4px}
+  .rots{display:flex;justify-content:space-around;gap:8px;margin-top:8px}
+  .rots span{flex:1;max-width:60px;font-size:10.5px;color:var(--pnm);text-align:center;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  @media (max-width:900px){
+    .painel-grade{grid-template-columns:1fr}
+    .bloco.largo,.bloco.cheio{grid-column:auto}
+    #p-num{margin:0 -14px;padding:18px 14px}
+  }
+  .rc{font-size:23px;font-weight:700;fill:#EDEFF3}
+  .rr{font-size:9px;fill:#8D96A6;letter-spacing:.1em}
+  .cores-box{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
+  .cores-box .cb{display:inline-flex;align-items:center;gap:5px;border:1px solid #E3D6C9;
+    background:#fff;border-radius:99px;padding:3px 9px 3px 4px;font-size:11.5px;color:#5C4A52;
+    cursor:pointer;text-transform:capitalize;user-select:none}
+  .cores-box .cb i{width:14px;height:14px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.16)}
+  .cores-box .cb.on{border-color:#A63E60;background:#FDF6F8;color:#9B3A58;font-weight:600}
+  .mini-lbl{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+    color:#8A7680;margin:6px 0 3px}
 </style>
 </head>
 <body>
@@ -100,7 +175,7 @@
 <div id="telaPainel">
   <header class="top">
     <h1>Admin · OOMM Studio</h1>
-    <span class="quem" id="quem"></span><span class="quem" style="margin-left:0;opacity:.7">· v12 · 19/07/2026</span>
+    <span class="quem" id="quem"></span><span class="quem" style="margin-left:0;opacity:.7">· v14 · 19/07/2026</span>
     <a href="editor-catalogo.html" style="color:#EE9CB2;font-size:13.5px;text-decoration:underline">Editor de categorias</a>
     <button id="sair" style="background:transparent;border-color:#5A424C;color:#fff;padding:7px 13px;font-size:13.5px">Sair</button>
   </header>
@@ -129,7 +204,7 @@
     <!-- ABA NÚMEROS -->
     <section class="painel" id="p-num" hidden>
       <div class="num-topo">
-        <span style="color:var(--muted);font-size:15px">Período:</span>
+        <span class="lbl">Período:</span>
         <button class="per" data-d="7"   aria-selected="false">7 dias</button>
         <button class="per" data-d="30"  aria-selected="true">30 dias</button>
         <button class="per" data-d="90"  aria-selected="false">90 dias</button>
@@ -290,7 +365,7 @@
       try{
         const full  = await processar(f, 1456, 0.85);
         const thumb = await processar(f, 760,  0.78);
-        novas.push({id:proximoId++, cat:"brindes", nome:"", selo:"", desc:"", full, thumb, url:URL.createObjectURL(thumb)});
+        novas.push({id:proximoId++, cat:"brindes", nome:"", selo:"", desc:"", material:"", cores:[], full, thumb, url:URL.createObjectURL(thumb)});
       }catch(err){ alert("Não consegui ler "+f.name+": "+err.message); }
     }
     drop.querySelector("b").textContent = "Arraste fotos aqui ou clique para escolher";
@@ -311,11 +386,12 @@
         '<div class="im"><span class="badge">NOVA</span><img src="'+n.url+'" alt=""></div>'+
         '<div class="bd"><div class="cod">OOMM-'+String(n.id).padStart(3,"0")+'</div>'+
         sel(n.cat)+selSelo(n.selo)+'<input type="text" placeholder="nome (opcional)" value="'+n.nome+'">'+
-        campoDesc(n.desc||"")+
+        campoDesc(n.desc||"")+campoExtra(n.material||"", n.cores||[])+
         '<button class="lixo">Remover</button></div>';
       el.querySelectorAll("select")[0].onchange = e => n.cat = e.target.value;
       el.querySelectorAll("select")[1].onchange = e => n.selo = e.target.value;
       ligaDesc(el, n.cat, t => { n.desc = t; contar(); }, ()=>n.cat).value = n.desc||"";
+      ligaExtra(el, n.material||"", n.cores||[], (m,co)=>{ n.material=m; n.cores=co; contar(); });
       el.querySelector("input").oninput  = e => n.nome = e.target.value;
       el.querySelector(".lixo").onclick  = ()=>{ novas.splice(novas.indexOf(n),1); montarCatalogo(); contar(); };
       el.querySelector(".im").onclick = ()=>abrirZoom(n.url);
@@ -324,19 +400,21 @@
 
     PRODUTOS.forEach(p=>{
       if(removidas.has(p.i)) return;
-      const e0 = edicoes[p.i] || {c:p.c, n:p.n, s:p.s, d:p.d};
+      const e0 = edicoes[p.i] || {c:p.c, n:p.n, s:p.s, d:p.d, m:p.m, co:p.co};
       const el = document.createElement("div"); el.className = "peca";
       const arq = p.r ? "/fotos/t/p"+p.i+".jpg" : BASE+"img/catalogo/t/p"+String(p.i).padStart(2,"0")+".jpg";
       el.innerHTML =
         '<div class="im"><img src="'+arq+'" loading="lazy" alt=""></div>'+
         '<div class="bd"><div class="cod">OOMM-'+String(p.i).padStart(3,"0")+'</div>'+
         sel(e0.c)+selSelo(e0.s)+'<input type="text" placeholder="nome (opcional)" value="'+(e0.n||"").replace(/"/g,"&quot;")+'">'+
-        campoDesc(e0.d||"")+
+        campoDesc(e0.d||"")+campoExtra(e0.m||"", e0.co||[])+
         '<button class="lixo">Tirar do catálogo</button></div>';
       el.querySelectorAll("select")[0].onchange = e =>{ edicoes[p.i]={...e0, c:e.target.value}; contar(); };
       el.querySelectorAll("select")[1].onchange = e =>{ edicoes[p.i]={...e0, s:e.target.value}; contar(); };
       ligaDesc(el, e0.c, t => { edicoes[p.i] = {...(edicoes[p.i]||e0), d:t}; contar(); },
                ()=> (edicoes[p.i]||e0).c).value = e0.d || "";
+      ligaExtra(el, e0.m||"", e0.co||[], (m,co)=>{
+        edicoes[p.i] = {...(edicoes[p.i]||e0), m:m, co:co}; contar(); });
       el.querySelector("input").oninput  = e =>{ edicoes[p.i]={...e0, n:e.target.value}; contar(); };
       el.querySelector(".lixo").onclick  = ()=>{
         if(confirm("Tirar a peça OOMM-"+String(p.i).padStart(3,"0")+" do catálogo?")){
@@ -370,6 +448,29 @@
       ta.focus();
     });
     return ta;
+  }
+
+  function campoExtra(){
+    return '<div class="mini-lbl">Material</div>'+
+      '<select class="mat">'+MATERIAIS.map(m=>'<option value="'+m+'">'+(m||"— não informar —")+'</option>').join("")+'</select>'+
+      '<div class="mini-lbl">Cores disponíveis</div><div class="cores-box"></div>';
+  }
+
+  function ligaExtra(el, material, cores, aoMudar){
+    const sel = el.querySelector("select.mat");
+    const cx  = el.querySelector(".cores-box");
+    sel.value = material || "";
+    let atuais = (cores||[]).slice();
+    sel.onchange = ()=>aoMudar(sel.value, atuais);
+    cx.innerHTML = Object.keys(PALETA).map(c=>
+      '<span class="cb'+(atuais.indexOf(c)!==-1?" on":"")+'" data-c="'+c+'">'+
+      '<i style="background:'+PALETA[c]+'"></i>'+c.replace(/-/g," ")+'</span>').join("");
+    cx.querySelectorAll(".cb").forEach(b=>b.onclick = ()=>{
+      const c = b.dataset.c, i = atuais.indexOf(c);
+      if(i===-1) atuais.push(c); else atuais.splice(i,1);
+      b.classList.toggle("on", i===-1);
+      aoMudar(sel.value, atuais);
+    });
   }
 
   /* ================= ABA PÁGINAS ================= */
@@ -601,34 +702,42 @@
     const taxa = visitas ? (zap/visitas*100) : 0;
     const noCat = (d.paginas||[]).find(x=>/catalogo|peca/.test(x.alvo));
     const vistasCat = noCat ? noCat.n : 0;
+    const s = serieDiaria(d.porDia);
 
-    const serie = serieDiaria(d.porDia);
+    // 6 blocos, 3 por linha
+    alvo.innerHTML = '<div class="painel-grade">'+
+      // linha 1 — três números
+      bloco("kpi", kpiCorpo("Páginas vistas", nf(visitas), "nos últimos "+d.dias+" dias",
+            "#E5486F", ICONES.olho, s.p))+
+      bloco("kpi", kpiCorpo("Conversas no WhatsApp", nf(zap), "pedidos iniciados",
+            "#22C48A", ICONES.zap, s.z))+
+      bloco("kpi", kpiCorpo("Taxa de contato", taxa.toFixed(1).replace(".",",")+"%",
+            diagnostico(taxa), "#F2A73B", ICONES.alvo, null))+
+      // linha 2 — gráfico grande + rosca
+      bloco("largo", cab("Movimento dia a dia",
+            "Quem passou pelo site e quem chamou no WhatsApp.") + areaDupla(d.porDia))+
+      bloco("", cab("De onde vem a visita", "Qual canal traz gente.") + rosca(d.origens))+
+      // linha 3 — funil + duas colunas
+      bloco("", cab("Do clique ao pedido", "Onde as pessoas param.") +
+            funil(visitas, vistasCat, peca, zap))+
+      bloco("", cab("Páginas mais vistas", "&nbsp;") + colunas(d.paginas, "#E5486F"))+
+      bloco("", cab("Peças mais pedidas", "Cliques no botão + do catálogo.") +
+            colunas(d.pecas, "#22C48A"))+
+      '</div>'+
+      '<p class="nota" style="margin-top:16px">Contamos só o que acontece no site — sem cookie e '+
+      'sem identificar ninguém. Robôs de busca são descartados, então estes números são menores '+
+      'e mais honestos que os de outras ferramentas.</p>';
+  }
 
-    alvo.innerHTML =
-      '<div class="kpis">'+
-        kpi("Páginas vistas", nf(visitas), "nos últimos "+d.dias+" dias", "#E5486F", ICONES.olho,  serie.p)+
-        kpi("Conversas no WhatsApp", nf(zap), "pedidos iniciados",        "#22C48A", ICONES.zap,   serie.z)+
-        kpi("Taxa de contato", taxa.toFixed(1).replace(".",",")+"%", diagnostico(taxa), "#F2A73B", ICONES.alvo, null)+
-        kpi("Cliques nas lojas", nf(loja), "Shopee e Mercado Livre",      "#7C6BE8", ICONES.sacola, null)+
-      '</div>'+
-      '<div class="pn-card"><h4>Faturamento de atenção</h4>'+
-        '<p class="sub">Quantas pessoas passaram pelo site e quantas chamaram no WhatsApp, dia a dia.</p>'+
-        areaDupla(d.porDia)+
-      '</div>'+
-      '<div class="pn-grid">'+
-        '<div class="pn-card"><h4>Do primeiro clique ao pedido</h4>'+
-          '<p class="sub">Onde as pessoas param no caminho.</p>'+funil(visitas, vistasCat, peca, zap)+'</div>'+
-        '<div class="pn-card"><h4>De onde vem a visita</h4>'+
-          '<p class="sub">Qual canal traz gente para o site.</p>'+rosca(d.origens)+'</div>'+
-      '</div>'+
-      '<div class="pn-linha">'+
-        '<div class="pn-card"><h4>Páginas mais vistas</h4><p class="sub">&nbsp;</p>'+
-          colunas(d.paginas, "#E5486F")+'</div>'+
-        '<div class="pn-card"><h4>Peças mais pedidas</h4>'+
-          '<p class="sub">Cliques no botão + do catálogo.</p>'+colunas(d.pecas, "#22C48A")+'</div>'+
-      '</div>'+
-      '<p class="pn-nota">Contamos só o que acontece no site — sem cookie e sem identificar ninguém. '+
-      'Robôs de busca são descartados, então estes números são menores e mais honestos que os de outras ferramentas.</p>';
+  const bloco = (cls, corpo) => '<div class="bloco '+cls+'">'+corpo+'</div>';
+  const cab = (t, s) => '<h4>'+t+'</h4><p class="sub">'+s+'</p>';
+
+  function kpiCorpo(nome, val, sub, cor, icone, serie){
+    return (serie && serie.length>1 ? faisca(serie, cor) : '')+
+      '<div class="cab"><span class="ic" style="background:'+cor+'22;color:'+cor+'">'+
+      '<svg viewBox="0 0 20 20" width="17" height="17">'+icone+'</svg></span>'+
+      '<span class="nome">'+nome+'</span></div>'+
+      '<p class="val">'+val+'</p><p class="sub2">'+sub+'</p>';
   }
 
   function serieDiaria(porDia){
@@ -674,7 +783,7 @@
     (porDia||[]).forEach(r=>{ m[r.dia] = m[r.dia] || {p:0,z:0};
       if(r.tipo==="pagina") m[r.dia].p = r.n; if(r.tipo==="whatsapp") m[r.dia].z = r.n; });
     const dias = Object.keys(m).sort();
-    if(dias.length < 2) return '<p class="pn-vazio">Ainda não há dias suficientes para desenhar a curva.</p>';
+    if(dias.length < 2) return '<p class="vazio">Ainda não há dias suficientes para desenhar a curva.</p>';
 
     const W=780, H=260, ML=44, MR=14, MT=16, MB=28, iw=W-ML-MR, ih=H-MT-MB;
     const teto = Math.max(5, Math.ceil(Math.max(...dias.map(k=>m[k].p))/5)*5);
@@ -699,7 +808,7 @@
       '<rect x="'+(x(i)-11).toFixed(1)+'" y="'+MT+'" width="22" height="'+ih+'" fill="transparent">'+
       '<title>'+k.split("-").reverse().join("/")+"\n"+m[k].p+' visitas\n'+m[k].z+' no WhatsApp</title></rect></g>').join("");
 
-    return '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Movimento diário">'+
+    return '<svg class="g" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Movimento diário">'+
       '<defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1">'+
       '<stop offset="0%" stop-color="#E5486F" stop-opacity=".38"/>'+
       '<stop offset="100%" stop-color="#E5486F" stop-opacity="0"/></linearGradient></defs>'+
@@ -708,7 +817,7 @@
       '<path d="'+linha("p")+'" fill="none" stroke="#E5486F" stroke-width="2.4" stroke-linejoin="round"/>'+
       '<path d="'+linha("z")+'" fill="none" stroke="#22C48A" stroke-width="2.4" stroke-linejoin="round"/>'+
       pts+rot+'</svg>'+
-      '<div class="pn-leg"><span><i style="background:#E5486F"></i>páginas vistas</span>'+
+      '<div class="leg"><span><i style="background:#E5486F"></i>páginas vistas</span>'+
       '<span><i style="background:#22C48A"></i>conversas no WhatsApp</span></div>';
   }
 
@@ -719,21 +828,21 @@
       {t:"Clicaram numa peça",   v:pecas,    c:"#F2A73B", d:"botão + do catálogo"},
       {t:"Chamaram no WhatsApp", v:zap,      c:"#22C48A", d:"de qualquer página"}
     ];
-    if(!visitas) return '<p class="pn-vazio">Sem visitas no período.</p>';
+    if(!visitas) return '<p class="vazio">Sem visitas no período.</p>';
     return '<div class="funil">'+etapas.map(e=>{
       const pc = e.v/visitas*100;
       return '<div class="f" style="background:'+e.c+';width:'+Math.max(34, pc).toFixed(1)+'%;min-width:215px">'+
         '<span class="t">'+e.t+'<small>'+e.d+'</small></span>'+
         '<span class="v">'+nf(e.v)+'<small>'+pc.toFixed(1).replace(".",",")+'%</small></span></div>';
-    }).join("")+'</div><p class="funil-nota">Cada barra é comparada ao total de visitas. '+
+    }).join("")+'</div><p class="nota">Cada barra é comparada ao total de visitas. '+
       'As etapas não são encaixadas: dá para chamar no WhatsApp sem passar pelo catálogo.</p>';
   }
 
   function rosca(origens){
     const l = (origens||[]).filter(x=>x.alvo && x.n);
-    if(!l.length) return '<p class="pn-vazio">Sem dados de origem ainda.</p>';
+    if(!l.length) return '<p class="vazio">Sem dados de origem ainda.</p>';
     const total = l.reduce((a,x)=>a+x.n,0);
-    const R=62, r=41, cx=76, cy=76;
+    const R=58, r=38, cx=70, cy=70;
     let ang=-Math.PI/2, fatias="";
     l.forEach((x,i)=>{
       const frac=x.n/total, fim=ang+frac*Math.PI*2, grande=frac>.5?1:0;
@@ -744,24 +853,24 @@
         'fill="'+CORES[i%CORES.length]+'"><title>'+x.alvo+': '+x.n+'</title></path>';
       ang=fim;
     });
-    return '<div class="rosca-wrap"><svg viewBox="0 0 152 152">'+fatias+
-      '<text class="rosca-centro" x="76" y="74" text-anchor="middle">'+nf(total)+'</text>'+
-      '<text class="rosca-rot" x="76" y="90" text-anchor="middle">VISITAS</text></svg>'+
-      '<div class="rosca-leg">'+l.map((x,i)=>'<div class="it"><i style="background:'+CORES[i%CORES.length]+'"></i>'+
+    return '<div class="rosca"><svg class="g" viewBox="0 0 140 140">'+fatias+
+      '<text class="rc" x="70" y="68" text-anchor="middle">'+nf(total)+'</text>'+
+      '<text class="rr" x="70" y="84" text-anchor="middle">VISITAS</text></svg>'+
+      '<div class="lg">'+l.map((x,i)=>'<div class="it"><i style="background:'+CORES[i%CORES.length]+'"></i>'+
       '<span>'+String(x.alvo).slice(0,20)+'</span><span class="q">'+(x.n/total*100).toFixed(0)+'%</span></div>').join("")+
       '</div></div>';
   }
 
   function colunas(linhas, cor){
     const l = (linhas||[]).filter(x=>x.alvo).slice(0,5);
-    if(!l.length) return '<p class="pn-vazio">Sem dados ainda.</p>';
+    if(!l.length) return '<p class="vazio">Sem dados ainda.</p>';
     const max = Math.max(...l.map(x=>x.n));
-    return '<div class="col-wrap"><div class="colunas">'+l.map((x,i)=>{
+    return '<div class="col-wrap"><div class="cols">'+l.map((x,i)=>{
       const rot = String(x.alvo).replace(/^\//,"").replace(".html","").replace("index","início");
       return '<div class="c" title="'+rot+': '+x.n+'"><span class="vl">'+nf(x.n)+'</span>'+
         '<span class="bar" style="height:'+Math.max(4,(x.n/max*100)).toFixed(1)+'%;background:'+
         (i===0?cor:cor+(["","CC","99","77","55"][i]||"55"))+'"></span></div>';
-    }).join("")+'</div><div class="col-rots">'+l.map(x=>
+    }).join("")+'</div><div class="rots">'+l.map(x=>
       '<span>'+String(x.alvo).replace(/^\//,"").replace(".html","").replace("index","início")+'</span>').join("")+
       '</div></div>';
   }
@@ -814,7 +923,7 @@
     const lista = [];
     PRODUTOS.forEach(p=>{
       if(removidas.has(p.i)) return;
-      const e0 = edicoes[p.i] || {c:p.c, n:p.n, s:p.s, d:p.d};
+      const e0 = edicoes[p.i] || {c:p.c, n:p.n, s:p.s, d:p.d, m:p.m, co:p.co};
       const item = {c:e0.c, n:e0.n||"", i:p.i};
       if(e0.s) item.s = e0.s;
       if(p.r)  item.r = 1;
@@ -824,6 +933,8 @@
       const item = {c:n.cat, n:n.nome||"", i:n.id, r:1};
       if(n.selo) item.s = n.selo;
       if(n.desc) item.d = n.desc;
+      if(n.material) item.m = n.material;
+      if(n.cores && n.cores.length) item.co = n.cores;
       lista.push(item);
     });
     return lista;
