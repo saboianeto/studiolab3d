@@ -14,7 +14,7 @@
     { "binding": "DADOS", "id": "COLE_AQUI_O_ID_DO_KV" }
   ],
   "d1_databases": [
-    { "binding": "METRICAS", "database_name": "oomm-metricas", "database_id": "COLE_AQUI_O_ID_DO_D1" }
+    { "binding": "METRICAS", "database_name": "oomm-metricas", "database_id": "4321266f-6ac5-4b8b-8248-9f85204b7af6" }
   ],
   "observability": { "enabled": true }
 }
