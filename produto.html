@@ -113,9 +113,9 @@
           <ul class="pd-garantias">
             <li><b>A partir de 1 unidade.</b> Sem pedido mínimo.</li>
             <li><b>Prova antes do lote.</b> Você aprova a peça antes da tiragem.</li>
-            <li><b>Envio para todo o Brasil.</b> Retirada em São Paulo.</li>
+            <li><b>Enviamos para todo o Brasil.</b> Sedex e PAC pelos Correios.</li>
           </ul>
-          <p class="pd-vendedor">Produzido por <b>OOMM Studio</b> · São Paulo</p>
+          <p class="pd-vendedor">Produzido por <b>OOMM Studio</b></p>
         </div>
       </aside>
     </div>
@@ -157,7 +157,7 @@
     <div class="ft-top">
       <div>
         <div class="brand">OOMM<span style="color:var(--teal)">.</span>STUDIO <small class="mono">studio 3d</small></div>
-        <p class="desc">Brindes corporativos e peças personalizadas em impressão 3D, sob medida para empresas, escolas, casa e festas. São Paulo · envio para todo o Brasil.</p>
+        <p class="desc">Brindes corporativos e peças personalizadas em impressão 3D, sob medida para empresas, escolas, casa e festas. Enviamos para todo o Brasil.</p>
       </div>
       <div>
         <h5>Linhas</h5>
@@ -292,7 +292,7 @@
       ["Disponibilidade", it.estoque ? "pronta-entrega, sujeito a estoque" : "produzida sob encomenda"],
       ["Personalização", "cor, tamanho, nome, data ou logo"],
       ["Prazo", "combinado na conversa, conforme a tiragem"],
-      ["Envio", "todo o Brasil · retirada em São Paulo"]
+      ["Envio", "para todo o Brasil, via Correios"]
     ].map(([a,b])=>'<li><b>'+a+':</b> '+b+'</li>').join("");
 
     const msg = "Olá! Gostaria de um orçamento da peça " + it.cod + " (" + it.nome + ").\n" +
@@ -330,7 +330,7 @@
     montarCompartilhar(it);
 
     // parecidas
-    const irmas = LISTA.map(monta).filter(x=>x.cat===it.cat && x.id!==it.id).slice(0,4);
+    const irmas = LISTA.filter(p=>!p.o).map(monta).filter(x=>x.cat===it.cat && x.id!==it.id).slice(0,4);
     if(irmas.length){
       $("#relacionados").hidden = false;
       $("#gradeRel").innerHTML = irmas.map(cartao).join("");
@@ -424,7 +424,7 @@
       secoes.forEach(([chave, sec, grade])=>{
         const ids = (d[chave]||[]).filter(id=>id !== atual).slice(0,4);
         if(!ids.length) return;
-        const itens = ids.map(id=>LISTA.find(x=>x.i===id)).filter(Boolean).map(monta);
+        const itens = ids.map(id=>LISTA.find(x=>x.i===id && !x.o)).filter(Boolean).map(monta);
         if(!itens.length) return;
         $(sec).hidden = false;
         $(grade).innerHTML = itens.map(cartao).join("");

@@ -602,6 +602,7 @@ async function sitemap(request, env) {
   const cat = await lerJSON(env, "catalogo", null);
   if (cat && Array.isArray(cat.produtos)) {
     cat.produtos.forEach(x => {
+      if (x.o) return;                       // escondida no painel: fora do mapa do site
       const nome = (x.n && x.n.trim()) ? apelido(x.n.trim()) + "-" : "peca-";
       itens.push("<url><loc>" + base + "/peca/" + nome + x.i + "</loc><lastmod>" + hoje +
                  "</lastmod><priority>0.7</priority></url>");

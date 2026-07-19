@@ -139,6 +139,16 @@
           <span>Meta<span class="rot" style="display:block">Instagram &amp; Facebook</span></span>
         </a>
 
+        <a class="parc" href="https://www.correios.com.br" target="_blank" rel="noopener" aria-label="Enviamos por Sedex e PAC dos Correios">
+          <svg width="30" height="22" viewBox="0 0 34 24" aria-hidden="true">
+            <rect width="34" height="24" rx="4" fill="#FFD100"/>
+            <path d="M6 15.5 9.6 8h2.2l3.6 7.5h-2.3l-.7-1.6H9l-.7 1.6H6zm3.6-3.2h2.2l-1.1-2.5-1.1 2.5z" fill="#003399"/>
+            <path d="M17 15.5V8h5.6v1.8h-3.4v1.1h3.1v1.7h-3.1v1.1h3.5v1.8H17z" fill="#003399"/>
+            <path d="m24 15.5 2.3-3.8L24.1 8h2.4l1.2 2.2L28.9 8h2.4l-2.2 3.7 2.3 3.8h-2.4l-1.3-2.3-1.3 2.3H24z" fill="#003399"/>
+          </svg>
+          <span>Correios<span class="rot" style="display:block">Sedex e PAC</span></span>
+        </a>
+
         <span class="parc-sep"></span>
 
         <span class="parc" aria-label="Aceitamos cartões Visa e Mastercard">
@@ -160,7 +170,7 @@
     <div class="ft-top">
       <div>
         <div class="brand">OOMM<span style="color:var(--teal)">.</span>STUDIO <small class="mono">studio 3d</small></div>
-        <p class="desc">Brindes corporativos e peças personalizadas em impressão 3D, sob medida para empresas, escolas, casa e festas. São Paulo · envio para todo o Brasil.</p>
+        <p class="desc">Brindes corporativos e peças personalizadas em impressão 3D, sob medida para empresas, escolas, casa e festas. Enviamos para todo o Brasil.</p>
       </div>
       <div>
         <h5>Linhas</h5>
@@ -232,7 +242,8 @@
   let seloAtual = "";
   const TEXTO_PADRAO = document.getElementById("lbTexto").innerHTML;
 
-  let itens = PRODUTOS.map(monta);   // o que veio no repositório, para não ficar vazio
+  const visivel = p => !p.o;         // peça escondida no painel não vai para o site
+  let itens = PRODUTOS.filter(visivel).map(monta);
   let catAtual = "todos", pagina = 1, visiveis = [];
 
   // Busca a versão viva. Se a API não responder, segue com a do repositório —
@@ -246,7 +257,7 @@
       if(Array.isArray(d.categorias) && d.categorias.length){
         CATEGORIAS.length = 0; d.categorias.forEach(c=>CATEGORIAS.push(c));
       }
-      itens = d.produtos.map(monta);
+      itens = d.produtos.filter(visivel).map(monta);
       montarFiltros(); render();
     }catch(e){ /* silêncio: a versão local já está na tela */ }
   }
