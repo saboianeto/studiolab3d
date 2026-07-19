@@ -837,3 +837,86 @@ const SELOS = [
   {id:"destaque",      nome:"Destaque do mês", cor:"#B0863F"},
   {id:"personalizado", nome:"Personalizado",   cor:"#5B4B8A"}
 ];
+
+const SEO = [
+ {
+  "pagina": "index.html",
+  "tituloPagina": "Início",
+  "titulo": "OOMM Studio · Brindes corporativos e personalizados em impressão 3D",
+  "descricao": "Brindes corporativos, kits de evento e peças personalizadas em impressão 3D sob medida. Envio para todo o Brasil."
+ },
+ {
+  "pagina": "catalogo.html",
+  "tituloPagina": "Catálogo",
+  "titulo": "Catálogo · OOMM Studio · peças em impressão 3D",
+  "descricao": "Catálogo completo de peças em impressão 3D da OOMM Studio: chaveiros, displays, brindes, artigos para casa, educacionais, festas e religiosos."
+ },
+ {
+  "pagina": "corporativo.html",
+  "tituloPagina": "Brindes",
+  "titulo": "Brindes sob encomenda · OOMM Studio",
+  "descricao": "Chaveiros personalizados, peças com a sua logo e brindes sob medida em impressão 3D."
+ },
+ {
+  "pagina": "educacional.html",
+  "tituloPagina": "Eventos",
+  "titulo": "Kits para eventos e ativação · OOMM Studio",
+  "descricao": "Caixas, kits temáticos e itens personalizados para feiras, lançamentos e ativações de marca."
+ },
+ {
+  "pagina": "casa.html",
+  "tituloPagina": "Religiosos",
+  "titulo": "Artigos religiosos · OOMM Studio",
+  "descricao": "Nossa Senhora, suportes para terço e peças devocionais em impressão 3D."
+ },
+ {
+  "pagina": "festas.html",
+  "tituloPagina": "Festas",
+  "titulo": "Festas e celebrações · OOMM Studio",
+  "descricao": "Casamentos, batizados, chá de bebê e aniversários: topos, lembrancinhas e favores personalizados."
+ },
+ {
+  "pagina": "conecte.html",
+  "tituloPagina": "Conecte-se",
+  "titulo": "Conecte-se · OOMM Studio",
+  "descricao": "Instagram, TikTok, WhatsApp e lojas online do estúdio OOMM Studio."
+ }
+];
+
+const SUGESTOES = {
+ "chaveiros": [
+  "Chaveiro em impressão 3D, leve e resistente. Feito na cor que você escolher, com nome, inicial ou logo em relevo. Ideal para lembrancinha e brinde de evento.",
+  "Chaveiro personalizado com acabamento em relevo e argola metálica reforçada. Produzido sob encomenda a partir de 1 unidade — combinações de duas cores sem custo extra.",
+  "Peça pequena, de alto impacto: chaveiro impresso em 3D com o seu detalhe. Ótimo para tiragem alta em festas, feiras e ações de marca."
+ ],
+ "displays": [
+  "Display expositor em impressão 3D para valorizar produtos no balcão ou na vitrine. Estrutura firme, medidas sob encomenda e nome ou logo gravados na base.",
+  "Suporte de mesa produzido sob medida para o seu produto. Encaixe calculado peça a peça, acabamento liso e cor à sua escolha.",
+  "Expositor prático para pontos de venda e feiras. Desmontável, leve de transportar e produzido na cor da sua marca."
+ ],
+ "brindes": [
+  "Brinde corporativo em impressão 3D, produzido na cor da sua marca com nome ou logo em relevo. Sob encomenda a partir de 1 unidade, com prazos combinados por tiragem.",
+  "Peça personalizada para presentear clientes e equipe. Escolha cor, tamanho e o detalhe que vai gravado — enviamos prova antes de produzir o lote.",
+  "Brinde que fica exposto em vez de guardado: útil no dia a dia e com a sua identidade impressa na peça."
+ ],
+ "casa": [
+  "Peça de casa em impressão 3D, feita sob medida e na cor que combina com o seu ambiente. Material resistente ao uso diário e fácil de limpar.",
+  "Item decorativo e funcional, produzido sob encomenda. Dá para ajustar tamanho e cor, e acrescentar nome ou data em relevo.",
+  "Produzida em PETG, material mais resistente a calor e umidade — indicado para uso constante dentro de casa."
+ ],
+ "educacionais": [
+  "Peça educativa em impressão 3D para atividades práticas e demonstrações. Tamanho e cor sob encomenda, com produção em lote para turmas inteiras.",
+  "Material de apoio pedagógico impresso em 3D: leve, seguro para manuseio e produzido na quantidade que a escola precisar.",
+  "Kit para eventos e oficinas, embalado individualmente e com etiqueta personalizada da instituição."
+ ],
+ "festas": [
+  "Lembrancinha em impressão 3D para festas e celebrações. Personalizada com nome, data ou tema, na cor da decoração.",
+  "Detalhe que combina com a mesa e o convite: peça impressa em 3D, produzida em lote e embalada uma a uma.",
+  "Lembrança que não vai pro lixo depois da festa. Escolha o tema e a cor — produzimos a partir de 1 unidade."
+ ],
+ "religiosos": [
+  "Peça devocional em impressão 3D com acabamento acetinado. Sob encomenda em três tamanhos, com nome ou frase gravados em relevo.",
+  "Imagem produzida com cuidado no acabamento, para presente e para a casa. Cores e tamanho combinados antes da produção.",
+  "Artigo religioso personalizado: escolha a cor, o tamanho e a frase que vai gravada na base."
+ ]
+};
