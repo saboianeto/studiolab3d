@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Admin · OOMM Studio</title>
-<!-- ADMIN v14 · 19/07/2026 — sem tela de login: a proteção é do Cloudflare Access -->
+<!-- ADMIN v15 · 19/07/2026 — sem tela de login: a proteção é do Cloudflare Access -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{--ink:#2A2126;--paper:#F4ECE3;--card:#fff;--line:#E3D6C9;--teal:#A63E60;--teal-d:#9B3A58;
@@ -167,6 +167,68 @@
   .cores-box .cb.on{border-color:#A63E60;background:#FDF6F8;color:#9B3A58;font-weight:600}
   .mini-lbl{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
     color:#8A7680;margin:6px 0 3px}
+  /* lista de peças */
+  .barra-lista{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+  .barra-lista input.busca{flex:1;min-width:180px;max-width:320px}
+  .chip-cat{padding:7px 14px;border-radius:99px;border:1px solid #E3D6C9;background:#fff;
+    font-size:13.5px;font-weight:600;color:#5C4A52;cursor:pointer}
+  .chip-cat[aria-selected="true"]{background:#A63E60;border-color:#A63E60;color:#fff}
+  .chip-cat .q{opacity:.6;margin-left:5px;font-size:12px}
+  .linha-peca{display:grid;grid-template-columns:62px 1fr auto auto;gap:14px;align-items:center;
+    background:#fff;border:1px solid #E3D6C9;border-radius:12px;padding:10px 14px;margin-bottom:8px;
+    cursor:pointer;transition:border-color .15s,box-shadow .15s}
+  .linha-peca:hover{border-color:#A63E60;box-shadow:0 4px 14px rgba(20,22,28,.07)}
+  .linha-peca.nova{border-color:#1F8A54;box-shadow:0 0 0 2px rgba(31,138,84,.14)}
+  .linha-peca .mini{width:62px;height:62px;border-radius:9px;overflow:hidden;background:#EDE0D4}
+  .linha-peca .mini img{width:100%;height:100%;object-fit:cover;display:block}
+  .linha-peca .nome{font-size:15.5px;font-weight:600;margin:0 0 3px;line-height:1.25}
+  .linha-peca .meta2{font-size:12.5px;color:#8A7680}
+  .linha-peca .badges{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+  .bdg{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+    padding:3px 7px;border-radius:5px;white-space:nowrap}
+  .bdg.est{background:#E7F5EC;color:#14603A} .bdg.sem{background:#FBE9E9;color:#8A2A2A}
+  .bdg.sel{background:#F6E7EA;color:#9B3A58} .bdg.falta{background:#FBF2DF;color:#6E5417}
+  .linha-peca .seta{color:#C9B7A9;font-size:21px}
+  .pag-lista{display:flex;gap:8px;justify-content:center;align-items:center;margin-top:18px;flex-wrap:wrap}
+  .pag-lista button{min-width:38px;height:38px;padding:0 12px;border-radius:9px;border:1px solid #E3D6C9;
+    background:#fff;font-size:14px;font-weight:600;color:#5C4A52;cursor:pointer}
+  .pag-lista button[aria-current="true"]{background:#A63E60;border-color:#A63E60;color:#fff}
+  .pag-lista button:disabled{opacity:.4;cursor:not-allowed}
+  .pag-info{text-align:center;color:#8A7680;font-size:13.5px;margin-top:10px}
+
+  /* ficha da peça */
+  .ficha{background:#fff;border:1px solid #E3D6C9;border-radius:14px;padding:22px;max-width:860px}
+  .ficha-topo{display:flex;gap:20px;align-items:flex-start;margin-bottom:22px;flex-wrap:wrap}
+  .ficha-foto{width:190px;height:190px;border-radius:12px;overflow:hidden;background:#EDE0D4;flex:none}
+  .ficha-foto img{width:100%;height:100%;object-fit:cover}
+  .ficha-campos{flex:1;min-width:250px;display:flex;flex-direction:column;gap:12px}
+  .ficha h3{margin:0;font-size:19px}
+  .ficha .cod{font-size:12.5px;letter-spacing:.08em;color:#8A7680;margin:0 0 10px}
+  .ficha-secao{border-top:1px solid #F0E7DC;padding-top:16px;margin-top:16px}
+  .ficha-secao h4{margin:0 0 11px;font-size:14px;letter-spacing:-.01em}
+  .voltar{background:none;border:none;color:#9B3A58;font-family:inherit;font-size:14.5px;
+    font-weight:600;cursor:pointer;padding:6px 0;margin-bottom:12px}
+  .lin-dupla{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .combos-box{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .combo-tag{display:inline-flex;align-items:center;gap:6px;border:1px solid #E3D6C9;background:#F8F5F1;
+    border-radius:99px;padding:4px 10px 4px 6px;font-size:12px;text-transform:capitalize}
+  .combo-tag i{width:13px;height:13px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
+  .combo-tag button{border:none;background:none;color:#B33A3A;cursor:pointer;font-size:14px;padding:0 0 0 3px}
+  .mats-box{display:flex;flex-wrap:wrap;gap:6px}
+  .mats-box .mt{border:1px solid #E3D6C9;background:#fff;border-radius:99px;padding:5px 12px;
+    font-size:12.5px;color:#5C4A52;cursor:pointer}
+  .mats-box .mt.on{border-color:#A63E60;background:#FDF6F8;color:#9B3A58;font-weight:600}
+  @media (max-width:640px){ .linha-peca{grid-template-columns:52px 1fr auto} .linha-peca .badges{display:none}
+    .lin-dupla{grid-template-columns:1fr} }
+  .rk{display:flex;flex-direction:column;gap:7px}
+  .rk-l{display:grid;grid-template-columns:20px 1fr 1fr auto;gap:9px;align-items:center;font-size:12.5px;color:var(--pnt)}
+  .rk-l.acesso{grid-template-columns:1fr auto}
+  .rk-n{color:var(--pnm);font-weight:700;font-size:11.5px}
+  .rk-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rk-b{height:7px;background:#2B313C;border-radius:4px;overflow:hidden}
+  .rk-b i{display:block;height:100%;border-radius:4px}
+  .rk-v{color:var(--pnm);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .rk-est b{color:#3A4150;font-size:12px} .rk-est b.on{color:#F2A73B}
 </style>
 </head>
 <body>
@@ -175,7 +237,7 @@
 <div id="telaPainel">
   <header class="top">
     <h1>Admin · OOMM Studio</h1>
-    <span class="quem" id="quem"></span><span class="quem" style="margin-left:0;opacity:.7">· v14 · 19/07/2026</span>
+    <span class="quem" id="quem"></span><span class="quem" style="margin-left:0;opacity:.7">· v15 · 19/07/2026</span>
     <a href="editor-catalogo.html" style="color:#EE9CB2;font-size:13.5px;text-decoration:underline">Editor de categorias</a>
     <button id="sair" style="background:transparent;border-color:#5A424C;color:#fff;padding:7px 13px;font-size:13.5px">Sair</button>
   </header>
@@ -228,6 +290,12 @@
         Todo texto visível do site, por página. Edite e clique em <b>Publicar</b>.
         Campo em branco mantém o texto original.
       </p>
+      <div class="txt-linha" style="border-color:#A63E60;margin-bottom:22px">
+        <label>Link do grupo do WhatsApp</label>
+        <textarea id="grupoZap" rows="1" placeholder="https://chat.whatsapp.com/…"></textarea>
+        <p class="orig">Com este link preenchido, quem passar de 2 minutos no site recebe um
+        convite discreto para entrar no grupo. Deixe em branco para não mostrar nada.</p>
+      </div>
       <div id="listaTextos"></div>
     </section>
 
@@ -282,6 +350,7 @@
       const r = await fetch("/api/catalogo", {cache:"no-store"});
       if(!r.ok) return;
       const d = await r.json();
+      if(d && d.config){ config = d.config; window.__cfg0 = config.grupoZap || ""; }
       if(d && Array.isArray(d.produtos) && d.produtos.length){
         PRODUTOS.length = 0; d.produtos.forEach(p=>PRODUTOS.push(p));
         if(Array.isArray(d.categorias) && d.categorias.length){
@@ -312,7 +381,7 @@
       "As fotos são processadas aqui no seu navegador — nada é enviado para a internet. "+
       "Ao terminar, clique em <b>Publicar no site</b> — as alterações vão ao ar na hora.",
       "ok");
-    montarCatalogo(); montarSlots(); montarTextos(); montarSeo(); contar();
+    montarCatalogo(); montarSlots(); montarTextos(); montarConfig(); montarSeo(); contar();
   })();
 
   $("#sair").addEventListener("click", ()=>{ location.href = "/cdn-cgi/access/logout"; });
@@ -324,6 +393,7 @@
   const trocas = {};               // "pagina|idx" -> {blob, url, nome}
   const textosEdit = {};           // "pagina|sel|idx" -> texto
   const seoEdit = {};              // pagina -> {titulo, descricao}
+  let config = {};                 // grupoZap e afins
   const novosCards = {};           // pagina -> [{img, blob, url, titulo, desc, chips}]
   const ocultos = {};              // pagina -> Set de índices de card
   let proximoId = Math.max(0, ...PRODUTOS.map(p=>p.i)) + 1;
@@ -365,68 +435,264 @@
       try{
         const full  = await processar(f, 1456, 0.85);
         const thumb = await processar(f, 760,  0.78);
-        novas.push({id:proximoId++, cat:"brindes", nome:"", selo:"", desc:"", material:"", cores:[], full, thumb, url:URL.createObjectURL(thumb)});
+        novas.push({id:proximoId++, cat:"brindes", nome:"", selo:"", desc:"", materiais:[], cores:CORES_PADRAO.slice(), qtdCores:1, combos:[], estoque:1, full, thumb, url:URL.createObjectURL(thumb)});
       }catch(err){ alert("Não consegui ler "+f.name+": "+err.message); }
     }
     drop.querySelector("b").textContent = "Arraste fotos aqui ou clique para escolher";
     montarCatalogo(); contar();
   }
 
-  function montarCatalogo(){
-    const g = $("#gradeCat"); g.innerHTML = "";
-    const opts = CATEGORIAS.filter(c=>c.id!=="todos");
-    const sel = (val) => '<select data-campo="cat">'+opts.map(o=>
-      '<option value="'+o.id+'"'+(o.id===val?" selected":"")+'>'+o.nome+'</option>').join("")+'</select>';
-    const selSelo = (val) => '<select data-campo="selo">'+SELOS.map(o=>
-      '<option value="'+o.id+'"'+(o.id===(val||"")?" selected":"")+'>'+o.nome+'</option>').join("")+'</select>';
+  /* ================= LISTA DE PEÇAS ================= */
+  const POR_PG = 10;
+  let filtroCat = "todos", busca = "", pgLista = 1, abertaId = null;
 
-    novas.forEach(n=>{
-      const el = document.createElement("div"); el.className = "peca nova";
-      el.innerHTML =
-        '<div class="im"><span class="badge">NOVA</span><img src="'+n.url+'" alt=""></div>'+
-        '<div class="bd"><div class="cod">OOMM-'+String(n.id).padStart(3,"0")+'</div>'+
-        sel(n.cat)+selSelo(n.selo)+'<input type="text" placeholder="nome (opcional)" value="'+n.nome+'">'+
-        campoDesc(n.desc||"")+campoExtra(n.material||"", n.cores||[])+
-        '<button class="lixo">Remover</button></div>';
-      el.querySelectorAll("select")[0].onchange = e => n.cat = e.target.value;
-      el.querySelectorAll("select")[1].onchange = e => n.selo = e.target.value;
-      ligaDesc(el, n.cat, t => { n.desc = t; contar(); }, ()=>n.cat).value = n.desc||"";
-      ligaExtra(el, n.material||"", n.cores||[], (m,co)=>{ n.material=m; n.cores=co; contar(); });
-      el.querySelector("input").oninput  = e => n.nome = e.target.value;
-      el.querySelector(".lixo").onclick  = ()=>{ novas.splice(novas.indexOf(n),1); montarCatalogo(); contar(); };
-      el.querySelector(".im").onclick = ()=>abrirZoom(n.url);
-      g.appendChild(el);
-    });
-
-    PRODUTOS.forEach(p=>{
-      if(removidas.has(p.i)) return;
-      const e0 = edicoes[p.i] || {c:p.c, n:p.n, s:p.s, d:p.d, m:p.m, co:p.co};
-      const el = document.createElement("div"); el.className = "peca";
-      const arq = p.r ? "/fotos/t/p"+p.i+".jpg" : BASE+"img/catalogo/t/p"+String(p.i).padStart(2,"0")+".jpg";
-      el.innerHTML =
-        '<div class="im"><img src="'+arq+'" loading="lazy" alt=""></div>'+
-        '<div class="bd"><div class="cod">OOMM-'+String(p.i).padStart(3,"0")+'</div>'+
-        sel(e0.c)+selSelo(e0.s)+'<input type="text" placeholder="nome (opcional)" value="'+(e0.n||"").replace(/"/g,"&quot;")+'">'+
-        campoDesc(e0.d||"")+campoExtra(e0.m||"", e0.co||[])+
-        '<button class="lixo">Tirar do catálogo</button></div>';
-      el.querySelectorAll("select")[0].onchange = e =>{ edicoes[p.i]={...e0, c:e.target.value}; contar(); };
-      el.querySelectorAll("select")[1].onchange = e =>{ edicoes[p.i]={...e0, s:e.target.value}; contar(); };
-      ligaDesc(el, e0.c, t => { edicoes[p.i] = {...(edicoes[p.i]||e0), d:t}; contar(); },
-               ()=> (edicoes[p.i]||e0).c).value = e0.d || "";
-      ligaExtra(el, e0.m||"", e0.co||[], (m,co)=>{
-        edicoes[p.i] = {...(edicoes[p.i]||e0), m:m, co:co}; contar(); });
-      el.querySelector("input").oninput  = e =>{ edicoes[p.i]={...e0, n:e.target.value}; contar(); };
-      el.querySelector(".lixo").onclick  = ()=>{
-        if(confirm("Tirar a peça OOMM-"+String(p.i).padStart(3,"0")+" do catálogo?")){
-          removidas.add(p.i); montarCatalogo(); contar();
-        }
-      };
-      el.querySelector(".im").onclick = ()=>abrirZoom(p.r ? "/fotos/p"+p.i+".jpg" : BASE+"img/catalogo/p"+String(p.i).padStart(2,"0")+".jpg");
-      g.appendChild(el);
-    });
+  function dadosPeca(p){
+    const base = {c:p.c, n:p.n||"", s:p.s||"", d:p.d||"", co:p.co||[], qc:p.qc||1,
+                  cb:p.cb||[], mt:p.mt||(p.m?[p.m]:[]), e:(p.e===0?0:1)};
+    return edicoes[p.i] ? {...base, ...edicoes[p.i]} : base;
   }
 
-  function campoDesc(valor){
+  function todasAsPecas(){
+    const lista = [];
+    novas.forEach(n=> lista.push({novo:true, id:n.id, ref:n, url:n.url, dados:{
+      c:n.cat, n:n.nome||"", s:n.selo||"", d:n.desc||"", co:n.cores||[], qc:n.qtdCores||1,
+      cb:n.combos||[], mt:n.materiais||[], e:(n.estoque===0?0:1)}}));
+    PRODUTOS.forEach(p=>{
+      if(removidas.has(p.i)) return;
+      lista.push({novo:false, id:p.i, ref:p, dados:dadosPeca(p),
+        url: p.r ? "/fotos/t/p"+p.i+".jpg" : BASE+"img/catalogo/t/p"+String(p.i).padStart(2,"0")+".jpg"});
+    });
+    return lista;
+  }
+
+  function montarCatalogo(){
+    if(abertaId !== null){ montarFicha(abertaId); return; }
+    $("#areaFicha").hidden = true; $("#areaLista").hidden = false;
+
+    const todas = todasAsPecas();
+    const barra = $("#barraLista");
+    barra.innerHTML = '<input class="busca" type="search" placeholder="Buscar por nome ou código…" value="'+
+      busca.replace(/"/g,"&quot;")+'">';
+    const chip = (id, nome, n)=>{
+      const b = document.createElement("button");
+      b.className = "chip-cat"; b.type = "button";
+      b.setAttribute("aria-selected", filtroCat === id);
+      b.innerHTML = nome + '<span class="q">'+n+'</span>';
+      b.onclick = ()=>{ filtroCat = id; pgLista = 1; montarCatalogo(); };
+      return b;
+    };
+    barra.appendChild(chip("todos","Todos", todas.length));
+    CATEGORIAS.filter(c=>c.id!=="todos").forEach(c=>{
+      const n = todas.filter(x=>x.dados.c===c.id).length;
+      if(n) barra.appendChild(chip(c.id, c.nome, n));
+    });
+    const semNome = todas.filter(x=>!x.dados.n).length;
+    if(semNome) barra.appendChild(chip("__sem","Sem nome", semNome));
+    barra.querySelector("input").addEventListener("input", e=>{
+      busca = e.target.value; pgLista = 1;
+      montarCatalogo();
+      const i = $("#barraLista input"); i.focus(); i.setSelectionRange(i.value.length, i.value.length);
+    });
+
+    let vis = todas;
+    if(filtroCat === "__sem") vis = vis.filter(x=>!x.dados.n);
+    else if(filtroCat !== "todos") vis = vis.filter(x=>x.dados.c === filtroCat);
+    if(busca.trim()){
+      const t = busca.trim().toLowerCase();
+      vis = vis.filter(x=> (x.dados.n||"").toLowerCase().indexOf(t) !== -1 ||
+        ("oomm-"+String(x.id).padStart(3,"0")).indexOf(t) !== -1 || String(x.id) === t);
+    }
+
+    const totalPg = Math.max(1, Math.ceil(vis.length/POR_PG));
+    if(pgLista > totalPg) pgLista = totalPg;
+    const ini = (pgLista-1)*POR_PG;
+    const lote = vis.slice(ini, ini+POR_PG);
+
+    const alvo = $("#listaPecas"); alvo.innerHTML = "";
+    if(!lote.length) alvo.innerHTML = '<p style="color:#5C4A52;padding:26px 0;text-align:center">Nada encontrado.</p>';
+    lote.forEach(x=>{
+      const d = x.dados;
+      const cat = CATEGORIAS.find(c=>c.id===d.c);
+      const selo = SELOS.find(z=>z.id===d.s);
+      const el = document.createElement("div");
+      el.className = "linha-peca" + (x.novo ? " nova" : "");
+      el.innerHTML =
+        '<div class="mini"><img src="'+x.url+'" loading="lazy" alt=""></div>'+
+        '<div><p class="nome">'+(d.n || '<span style="color:#B33A3A">sem nome</span>')+'</p>'+
+        '<div class="meta2">OOMM-'+String(x.id).padStart(3,"0")+' · '+(cat?cat.nome:"—")+'</div></div>'+
+        '<div class="badges">'+
+          (x.novo ? '<span class="bdg est">nova</span>' : '')+
+          (d.e ? '<span class="bdg est">em estoque</span>' : '<span class="bdg sem">sem estoque</span>')+
+          (selo && selo.id ? '<span class="bdg sel">'+selo.nome+'</span>' : '')+
+          (!d.d ? '<span class="bdg falta">falta descrição</span>' : '')+
+        '</div><div class="seta">›</div>';
+      el.onclick = ()=>{ abertaId = x.id; montarFicha(x.id); };
+      alvo.appendChild(el);
+    });
+
+    const pg = $("#pagLista"); pg.innerHTML = "";
+    if(totalPg > 1){
+      const bt = (txt, fn, off, atual)=>{
+        const b=document.createElement("button"); b.type="button"; b.textContent=txt;
+        b.disabled=!!off; if(atual) b.setAttribute("aria-current","true");
+        b.onclick=fn; return b;
+      };
+      pg.appendChild(bt("‹", ()=>{ pgLista--; montarCatalogo(); }, pgLista===1));
+      let pulou = false;
+      for(let i=1;i<=totalPg;i++){
+        if(totalPg>7 && i>2 && i<totalPg-1 && Math.abs(i-pgLista)>1){
+          if(!pulou){ pg.appendChild(bt("…", ()=>{}, true)); pulou = true; }
+          continue;
+        }
+        pulou = false;
+        pg.appendChild(bt(String(i), ()=>{ pgLista=i; montarCatalogo(); }, false, i===pgLista));
+      }
+      pg.appendChild(bt("›", ()=>{ pgLista++; montarCatalogo(); }, pgLista===totalPg));
+    }
+    $("#pagInfo").textContent = vis.length
+      ? "Mostrando "+(ini+1)+"–"+Math.min(ini+POR_PG, vis.length)+" de "+vis.length+" peças"
+      : "";
+  }
+
+  /* ================= FICHA DE UMA PEÇA ================= */
+  function montarFicha(id){
+    $("#areaLista").hidden = true; $("#areaFicha").hidden = false;
+    const x = todasAsPecas().find(y=>y.id===id);
+    if(!x){ abertaId=null; montarCatalogo(); return; }
+    const d = x.dados;
+
+    function salvar(campo, valor){
+      if(x.novo){
+        const mapa = {c:"cat", n:"nome", s:"selo", d:"desc", co:"cores",
+                      qc:"qtdCores", cb:"combos", mt:"materiais", e:"estoque"};
+        x.ref[mapa[campo]] = valor;
+      } else {
+        edicoes[id] = {...d, ...(edicoes[id]||{}), [campo]: valor};
+      }
+      d[campo] = valor;
+      contar();
+    }
+
+    const opCat  = CATEGORIAS.filter(c=>c.id!=="todos").map(c=>
+      '<option value="'+c.id+'"'+(c.id===d.c?" selected":"")+'>'+c.nome+'</option>').join("");
+    const opSelo = SELOS.map(o=>
+      '<option value="'+o.id+'"'+(o.id===(d.s||"")?" selected":"")+'>'+o.nome+'</option>').join("");
+    const opQtd  = QTD_CORES.map(o=>
+      '<option value="'+o.v+'"'+(o.v===d.qc?" selected":"")+'>'+o.nome+'</option>').join("");
+
+    $("#areaFicha").innerHTML =
+      '<button class="voltar" id="btVoltar">‹ Voltar para a lista</button>'+
+      '<div class="ficha">'+
+        '<div class="ficha-topo">'+
+          '<div class="ficha-foto"><img src="'+x.url+'" alt=""></div>'+
+          '<div class="ficha-campos">'+
+            '<p class="cod">OOMM-'+String(id).padStart(3,"0")+(x.novo?" · peça nova":"")+'</p>'+
+            '<input type="text" id="fNome" placeholder="Nome da peça" value="'+(d.n||"").replace(/"/g,"&quot;")+'">'+
+            '<div class="lin-dupla"><select id="fCat">'+opCat+'</select>'+
+              '<select id="fSelo">'+opSelo+'</select></div>'+
+            '<div class="lin-dupla"><select id="fEstoque">'+
+              '<option value="1"'+(d.e?" selected":"")+'>Em estoque</option>'+
+              '<option value="0"'+(!d.e?" selected":"")+'>Sem estoque</option></select>'+
+              '<select id="fQtd">'+opQtd+'</select></div>'+
+          '</div>'+
+        '</div>'+
+        '<div class="ficha-secao" id="secDesc"><h4>Descrição</h4>'+campoDesc()+'</div>'+
+        '<div class="ficha-secao"><h4>Material — pode marcar mais de um</h4>'+
+          '<div class="mats-box" id="fMats"></div></div>'+
+        '<div class="ficha-secao" id="secCores"></div>'+
+        '<div class="ficha-secao" style="display:flex;gap:10px;flex-wrap:wrap">'+
+          '<button class="pri" id="btOk">Concluir e voltar</button>'+
+          '<button id="btTirar" style="color:#B33A3A">Tirar do catálogo</button>'+
+        '</div>'+
+      '</div>';
+
+    $("#btVoltar").onclick  = ()=>{ abertaId=null; montarCatalogo(); };
+    $("#btOk").onclick      = ()=>{ abertaId=null; montarCatalogo(); };
+    $("#btTirar").onclick   = ()=>{
+      if(!confirm("Tirar a peça OOMM-"+String(id).padStart(3,"0")+" do catálogo?")) return;
+      if(x.novo) novas.splice(novas.indexOf(x.ref),1); else removidas.add(id);
+      abertaId=null; montarCatalogo(); contar();
+    };
+    $("#fNome").oninput     = e=>salvar("n", e.target.value);
+    $("#fCat").onchange     = e=>{ salvar("c", e.target.value); };
+    $("#fSelo").onchange    = e=>salvar("s", e.target.value);
+    $("#fEstoque").onchange = e=>salvar("e", Number(e.target.value));
+    $("#fQtd").onchange     = e=>{ salvar("qc", Number(e.target.value)); montarFicha(id); };
+
+    const ta = ligaDesc($("#secDesc"), d.c, t=>salvar("d", t), ()=>d.c);
+    ta.value = d.d || "";
+
+    const mb = $("#fMats");
+    mb.innerHTML = MATERIAIS.map(m=>
+      '<span class="mt'+((d.mt||[]).indexOf(m)!==-1?" on":"")+'" data-m="'+m+'">'+m+'</span>').join("");
+    mb.querySelectorAll(".mt").forEach(b=>b.onclick = ()=>{
+      const l = (d.mt||[]).slice(), i = l.indexOf(b.dataset.m);
+      if(i===-1) l.push(b.dataset.m); else l.splice(i,1);
+      b.classList.toggle("on", i===-1);
+      salvar("mt", l);
+    });
+
+    montarCores(d, salvar);
+  }
+
+  function montarCores(d, salvar){
+    const sec = $("#secCores");
+    if(d.qc === 1){
+      let atuais = (d.co && d.co.length) ? d.co.slice() : CORES_PADRAO.slice();
+      if(!d.co || !d.co.length) salvar("co", atuais.slice());
+      sec.innerHTML = '<h4>Cores disponíveis</h4>'+
+        '<p style="font-size:12.5px;color:#8A7680;margin:0 0 10px">'+
+        'Toda peça já nasce com as cores que sempre temos em casa.</p>'+
+        '<div class="cores-box" id="fCores"></div>';
+      const cx = $("#fCores");
+      cx.innerHTML = Object.keys(PALETA).map(c=>
+        '<span class="cb'+(atuais.indexOf(c)!==-1?" on":"")+'" data-c="'+c+'">'+
+        '<i style="background:'+PALETA[c]+'"></i>'+c.replace(/-/g," ")+'</span>').join("");
+      cx.querySelectorAll(".cb").forEach(b=>b.onclick = ()=>{
+        const i = atuais.indexOf(b.dataset.c);
+        if(i===-1) atuais.push(b.dataset.c); else atuais.splice(i,1);
+        b.classList.toggle("on", i===-1);
+        salvar("co", atuais.slice());
+      });
+      return;
+    }
+
+    const cores = Object.keys(PALETA);
+    sec.innerHTML = '<h4>Combinações de '+d.qc+' cores</h4>'+
+      '<p style="font-size:12.5px;color:#8A7680;margin:0 0 10px">'+
+      'Monte cada combinação que você produz. O cliente escolhe entre elas.</p>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
+        Array.from({length:d.qc}, ()=> '<select class="cSel" style="width:auto;min-width:130px">'+
+          cores.map(c=>'<option value="'+c+'">'+c.replace(/-/g," ")+'</option>').join("")+'</select>').join("")+
+        '<button class="pri" id="btAddCombo" style="padding:9px 15px">Adicionar</button>'+
+      '</div><div class="combos-box" id="fCombos"></div>';
+
+    function desenhar(){
+      const lista = d.cb || [];
+      $("#fCombos").innerHTML = lista.length
+        ? lista.map((cb,i)=>{
+            const partes = cb.split("+");
+            return '<span class="combo-tag">'+partes.map(c=>
+              '<i style="background:'+(PALETA[c]||"#CCC")+'"></i>').join("")+
+              partes.map(c=>c.replace(/-/g," ")).join(" + ")+
+              '<button data-i="'+i+'" title="remover">×</button></span>';
+          }).join("")
+        : '<span style="font-size:12.5px;color:#8A7680">Nenhuma combinação cadastrada ainda.</span>';
+      $("#fCombos").querySelectorAll("button").forEach(b=>b.onclick = ()=>{
+        const l = (d.cb||[]).slice(); l.splice(Number(b.dataset.i),1);
+        salvar("cb", l); desenhar();
+      });
+    }
+    $("#btAddCombo").onclick = ()=>{
+      const sel = [...sec.querySelectorAll(".cSel")].map(x=>x.value);
+      const chave = sel.join("+");
+      const l = (d.cb||[]).slice();
+      if(l.indexOf(chave) === -1){ l.push(chave); salvar("cb", l); desenhar(); }
+    };
+    desenhar();
+  }
+
+  function campoDesc(){
     return '<div class="desc-box">'+
       '<textarea class="desc" rows="3" placeholder="Descrição da peça — aparece no catálogo"></textarea>'+
       '<button class="sugerir" type="button" title="Inserir uma descrição pronta">Sugerir texto</button>'+
@@ -448,29 +714,6 @@
       ta.focus();
     });
     return ta;
-  }
-
-  function campoExtra(){
-    return '<div class="mini-lbl">Material</div>'+
-      '<select class="mat">'+MATERIAIS.map(m=>'<option value="'+m+'">'+(m||"— não informar —")+'</option>').join("")+'</select>'+
-      '<div class="mini-lbl">Cores disponíveis</div><div class="cores-box"></div>';
-  }
-
-  function ligaExtra(el, material, cores, aoMudar){
-    const sel = el.querySelector("select.mat");
-    const cx  = el.querySelector(".cores-box");
-    sel.value = material || "";
-    let atuais = (cores||[]).slice();
-    sel.onchange = ()=>aoMudar(sel.value, atuais);
-    cx.innerHTML = Object.keys(PALETA).map(c=>
-      '<span class="cb'+(atuais.indexOf(c)!==-1?" on":"")+'" data-c="'+c+'">'+
-      '<i style="background:'+PALETA[c]+'"></i>'+c.replace(/-/g," ")+'</span>').join("");
-    cx.querySelectorAll(".cb").forEach(b=>b.onclick = ()=>{
-      const c = b.dataset.c, i = atuais.indexOf(c);
-      if(i===-1) atuais.push(c); else atuais.splice(i,1);
-      b.classList.toggle("on", i===-1);
-      aoMudar(sel.value, atuais);
-    });
   }
 
   /* ================= ABA PÁGINAS ================= */
@@ -587,6 +830,12 @@
   }
 
   /* ================= ABA: TEXTOS ================= */
+  function montarConfig(){
+    const c = $("#grupoZap");
+    c.value = config.grupoZap || "";
+    c.addEventListener("input", ()=>{ config.grupoZap = c.value.trim(); contar(); });
+  }
+
   function montarTextos(){
     const alvo = $("#listaTextos"); alvo.innerHTML = "";
     let atual = "";
@@ -673,6 +922,11 @@
     alvo.innerHTML = '<p style="color:var(--muted)">Carregando…</p>';
     try{
       const r = await fetch("/api/admin/metricas?dias="+periodo, {credentials:"same-origin"});
+      // Sessão do Access expira sozinha. Quando isso acontece, a resposta deixa de
+      // ser JSON e vira a tela de login — daí o "Failed to fetch" sem explicação.
+      const tipo = r.headers.get("Content-Type") || "";
+      if(r.status === 401 || r.status === 403 || !tipo.includes("application/json"))
+        throw new Error("__SESSAO__");
       if(!r.ok) throw new Error("Não consegui ler os números.");
       const d = await r.json();
       if(d.semBanco){
@@ -683,7 +937,12 @@
       }
       desenhar(d, alvo);
     }catch(e){
-      alvo.innerHTML = '<div class="msg err">'+e.message+'</div>';
+      alvo.innerHTML = e.message === "__SESSAO__" || /fetch/i.test(e.message)
+        ? '<div class="msg warn"><b>Sua sessão expirou.</b><br>'+
+          'Por segurança o acesso ao painel dura pouco tempo. '+
+          '<a href="" onclick="location.reload();return false;">Recarregue a página</a> '+
+          'e informe o código novamente.</div>'
+        : '<div class="msg err">'+e.message+'</div>';
     }finally{ carregandoNum = false; }
   }
 
@@ -723,6 +982,13 @@
       bloco("", cab("Páginas mais vistas", "&nbsp;") + colunas(d.paginas, "#E5486F"))+
       bloco("", cab("Peças mais pedidas", "Cliques no botão + do catálogo.") +
             colunas(d.pecas, "#22C48A"))+
+      // linha 4 — favoritas, avaliadas, acessos
+      bloco("", cab("Mais favoritadas", "Peças que ganharam coração.") +
+            ranking(d.favoritas, "#E5486F", "♥"))+
+      bloco("", cab("Melhor avaliadas", "Média das estrelas dadas pelos visitantes.") +
+            rankingNotas(d.avaliadas))+
+      bloco("", cab("Quem entrou no painel", "Sessões e tempo de uso.") +
+            listaAcessos(d.acessos))+
       '</div>'+
       '<p class="nota" style="margin-top:16px">Contamos só o que acontece no site — sem cookie e '+
       'sem identificar ninguém. Robôs de busca são descartados, então estes números são menores '+
@@ -861,6 +1127,45 @@
       '</div></div>';
   }
 
+  function ranking(linhas, cor, icone){
+    const l = (linhas||[]).filter(x=>x.alvo).slice(0,10);
+    if(!l.length) return '<p class="vazio">Ninguém favoritou ainda.</p>';
+    const max = Math.max(...l.map(x=>x.n));
+    return '<div class="rk">'+l.map((x,i)=>
+      '<div class="rk-l"><span class="rk-n">'+(i+1)+'</span>'+
+      '<span class="rk-t">'+x.alvo+'</span>'+
+      '<span class="rk-b"><i style="width:'+(x.n/max*100).toFixed(0)+'%;background:'+cor+'"></i></span>'+
+      '<span class="rk-v">'+icone+' '+x.n+'</span></div>').join("")+'</div>';
+  }
+
+  function rankingNotas(linhas){
+    const l = (linhas||[]).slice(0,10);
+    if(!l.length) return '<p class="vazio">Nenhuma avaliação ainda.</p>';
+    return '<div class="rk">'+l.map((x,i)=>{
+      const m = Number(x.media)||0;
+      const est = [1,2,3,4,5].map(n=>'<b class="'+(n<=Math.round(m)?"on":"")+'">★</b>').join("");
+      return '<div class="rk-l"><span class="rk-n">'+(i+1)+'</span>'+
+        '<span class="rk-t">OOMM-'+String(x.peca).padStart(3,"0")+'</span>'+
+        '<span class="rk-est">'+est+'</span>'+
+        '<span class="rk-v">'+m.toFixed(1).replace(".",",")+' ('+x.n+')</span></div>';
+    }).join("")+'</div>';
+  }
+
+  function listaAcessos(linhas){
+    const l = (linhas||[]);
+    if(!l.length) return '<p class="vazio">Sem registros no período.</p>';
+    const tempo = ms=>{
+      const min = Math.round((ms||0)/60000);
+      if(min < 60) return min+" min";
+      return Math.floor(min/60)+"h "+(min%60)+"min";
+    };
+    return '<div class="rk">'+l.map(x=>
+      '<div class="rk-l acesso"><span class="rk-t" title="'+x.email+'">'+
+      String(x.email).split("@")[0]+'</span>'+
+      '<span class="rk-v">'+x.sessoes+(x.sessoes===1?" entrada":" entradas")+' · '+tempo(x.tempo)+'</span></div>'
+    ).join("")+'</div>';
+  }
+
   function colunas(linhas, cor){
     const l = (linhas||[]).filter(x=>x.alvo).slice(0,5);
     if(!l.length) return '<p class="vazio">Sem dados ainda.</p>';
@@ -907,6 +1212,7 @@
     if(nc) partes.push("<b>"+nc+"</b> card(s) novo(s)");
     if(oc) partes.push("<b>"+oc+"</b> card(s) escondido(s)");
     if(sq) partes.push("<b>"+sq+"</b> página(s) com SEO editado");
+    if(config && config.grupoZap !== undefined && config.grupoZap !== (window.__cfg0||"")) partes.push("link do grupo");
     $("#contador").innerHTML = partes.length ? (partes.join(" · ") + " — ainda não publicado") : "Tudo publicado. Nenhuma alteração pendente.";
     $("#btnPublicar").disabled = !partes.length;
   }
@@ -915,7 +1221,7 @@
     if(!confirm("Descartar todas as alterações desta sessão?")) return;
     novas.length = 0; removidas.clear();
     [edicoes, trocas, textosEdit, novosCards, ocultos, seoEdit].forEach(o=>Object.keys(o).forEach(k=>delete o[k]));
-    montarCatalogo(); montarSlots(); montarTextos(); montarSeo(); contar();
+    montarCatalogo(); montarSlots(); montarTextos(); montarConfig(); montarSeo(); contar();
   });
 
   /* ================= PUBLICAR ================= */
@@ -933,16 +1239,24 @@
       const item = {c:n.cat, n:n.nome||"", i:n.id, r:1};
       if(n.selo) item.s = n.selo;
       if(n.desc) item.d = n.desc;
-      if(n.material) item.m = n.material;
+      if(n.materiais && n.materiais.length) item.mt = n.materiais;
       if(n.cores && n.cores.length) item.co = n.cores;
+      if(n.qtdCores && n.qtdCores > 1) item.qc = n.qtdCores;
+      if(n.combos && n.combos.length) item.cb = n.combos;
+      if(n.estoque === 0) item.e = 0;
       lista.push(item);
     });
     return lista;
   }
 
   async function enviar(rota, opcoes){
-    const r = await fetch(rota, {credentials:"same-origin", ...opcoes});
+    let r;
+    try{ r = await fetch(rota, {credentials:"same-origin", ...opcoes}); }
+    catch(e){ throw new Error("Sem conexão com o servidor. Verifique a internet e tente de novo."); }
     const tipo = r.headers.get("Content-Type") || "";
+    if(r.status === 401 || r.status === 403 || (!tipo.includes("application/json") && !r.ok))
+      throw new Error("Sua sessão expirou. Recarregue a página e informe o código de novo — "+
+                      "suas alterações continuam aqui na tela.");
     const d = tipo.includes("application/json") ? await r.json().catch(()=>null) : null;
     if(!r.ok) throw new Error((d && d.erro) || ("Falhou com código " + r.status + "."));
     return d;
@@ -1014,7 +1328,7 @@
       btn.textContent = "Salvando catálogo…";
       await enviar("/api/admin/catalogo", {
         method:"PUT", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({categorias: CATEGORIAS, produtos: montarLista()})
+        body: JSON.stringify({categorias: CATEGORIAS, produtos: montarLista(), config: config})
       });
       btn.textContent = "Salvando páginas…";
       await enviar("/api/admin/paginas", {
@@ -1030,7 +1344,7 @@
       novas.length = 0; removidas.clear();
       [edicoes, trocas, novosCards].forEach(o=>Object.keys(o).forEach(x=>delete o[x]));
       await carregarCatalogo();
-      montarCatalogo(); montarSlots(); montarTextos(); montarSeo(); contar();
+      montarCatalogo(); montarSlots(); montarTextos(); montarConfig(); montarSeo(); contar();
       window.scrollTo({top:0, behavior:"smooth"});
 
     }catch(err){
