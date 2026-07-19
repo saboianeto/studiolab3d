@@ -26,6 +26,7 @@ export default {
     try {
       if (p === "/api/catalogo")        return await catalogoPublico(request, env);
       if (p === "/api/evento")          return await registrarEvento(request, env);
+      if (p === "/sitemap.xml")         return await sitemap(request, env);
       if (p.startsWith("/api/admin/"))  return await rotaAdmin(request, env, url);
       if (p.startsWith("/fotos/"))      return await servirFoto(request, env, url, ctx);
     } catch (erro) {
@@ -39,10 +40,70 @@ export default {
     const tipo = resposta.headers.get("Content-Type") || "";
     if (!tipo.includes("text/html")) return resposta;
 
+    const pagina = nomeDaPagina(p);
+
+    // ------------------------------------------------------------------
+    // Endereço próprio de cada peça: /peca/chaveiro-flor-com-inicial-66
+    // O número no fim é a identidade real; o texto antes dele é só para o
+    // Google e para o olho humano. Assim, mudar o nome da peça não quebra
+    // nenhum link já compartilhado — apenas redireciona para o novo texto.
+    // ------------------------------------------------------------------
+    let idPeca = null, viaCaminho = false;
+    if (p.startsWith("/peca/")) {
+      const m = p.slice(6).match(/(?:^|-)(\d{1,5})\/?$/);
+      if (m) { idPeca = m[1]; viaCaminho = true; }
+    } else if (pagina === "catalogo.html") {
+      idPeca = url.searchParams.get("p");
+    }
+
+    if (idPeca && /^\d{1,5}$/.test(idPeca)) {
+      const cat  = await lerJSON(env, "catalogo", null);
+      const peca = cat && Array.isArray(cat.produtos)
+        ? cat.produtos.find(x => String(x.i) === idPeca) : null;
+
+      if (peca) {
+        const nome    = (peca.n && peca.n.trim()) ? peca.n.trim() : "";
+        const caminho = "/peca/" + (nome ? apelido(nome) + "-" : "peca-") + peca.i;
+
+        // endereço antigo ou texto desatualizado -> manda para o certo, de vez
+        if (p !== caminho) {
+          return new Response(null, { status: 301, headers: { Location: caminho } });
+        }
+
+        const base   = url.origin;
+        const foto   = base + (peca.r ? "/fotos/p" + peca.i + ".jpg"
+                                      : "/img/catalogo/p" + String(peca.i).padStart(2, "0") + ".jpg");
+        const cod    = "OOMM-" + String(peca.i).padStart(3, "0");
+        const rotulo = nome || "Peça sob encomenda";
+        const desc   = (peca.d && peca.d.trim())
+          ? peca.d.trim().slice(0, 200)
+          : rotulo + " em impressão 3D. Personalizamos cor, tamanho e acabamento. OOMM Studio, São Paulo.";
+        const titulo = rotulo + " · " + cod + " · OOMM Studio";
+
+        const alvo = new URL(request.url);
+        alvo.pathname = "/catalogo.html";
+        alvo.search = "";
+        const base_html = await env.ASSETS.fetch(new Request(alvo.toString(), request));
+
+        return new HTMLRewriter()
+          .on("title",                           { element(e) { e.setInnerContent(titulo, { html: false }); } })
+          .on('meta[name="description"]',        { element(e) { e.setAttribute("content", desc); } })
+          .on('link[rel="canonical"]',           { element(e) { e.setAttribute("href", base + caminho); } })
+          .on('meta[property="og:title"]',       { element(e) { e.setAttribute("content", titulo); } })
+          .on('meta[property="og:description"]', { element(e) { e.setAttribute("content", desc); } })
+          .on('meta[property="og:image"]',       { element(e) { e.setAttribute("content", foto); } })
+          .on('meta[property="og:url"]',         { element(e) { e.setAttribute("content", base + caminho); } })
+          .on("head", { element(e) {
+            e.append('<script>window.__PECA=' + JSON.stringify(peca.i) + ';</script>', { html: true });
+          }})
+          .transform(base_html);
+      }
+
+      if (viaCaminho) return new Response(null, { status: 302, headers: { Location: "/catalogo.html" } });
+    }
+
     const edicoes = await lerJSON(env, "paginas", null);
     if (!edicoes) return resposta;
-
-    const pagina = nomeDaPagina(p);
     const fotos     = filtrarPorPagina(edicoes.fotos,  pagina);   // {n: url}
     const textos    = edicoes.textos  && edicoes.textos[pagina]  || null;  // {sel: {n: txt}}
     const ocultos   = new Set((edicoes.ocultos && edicoes.ocultos[pagina]) || []);
@@ -342,6 +403,44 @@ function cardHTML(c) {
     '<div class="body"><h4>' + esc(c.titulo) + '</h4><p>' + esc(c.desc || "") + '</p>' +
     (chips ? '<div class="spec">' + chips + '</div>' : '') +
     '</div></article>';
+}
+
+// Transforma "Bandeja Ore e Confie" em "bandeja-ore-e-confie"
+function apelido(txt) {
+  return String(txt)
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")   // tira acento
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60)
+    .replace(/-+$/, "") || "peca";
+}
+
+// Mapa do site para os buscadores, montado na hora com todas as peças.
+async function sitemap(request, env) {
+  const base = new URL(request.url).origin;
+  const hoje = new Date().toISOString().slice(0, 10);
+  const paginas = ["", "catalogo.html", "corporativo.html", "educacional.html",
+                   "casa.html", "festas.html", "conecte.html"];
+
+  let itens = paginas.map(p =>
+    "<url><loc>" + base + "/" + p + "</loc><lastmod>" + hoje +
+    "</lastmod><priority>" + (p === "" ? "1.0" : p === "catalogo.html" ? "0.9" : "0.8") + "</priority></url>");
+
+  const cat = await lerJSON(env, "catalogo", null);
+  if (cat && Array.isArray(cat.produtos)) {
+    cat.produtos.forEach(x => {
+      const nome = (x.n && x.n.trim()) ? apelido(x.n.trim()) + "-" : "peca-";
+      itens.push("<url><loc>" + base + "/peca/" + nome + x.i + "</loc><lastmod>" + hoje +
+                 "</lastmod><priority>0.7</priority></url>");
+    });
+  }
+
+  return new Response(
+    '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+    itens.join("\n") + "\n</urlset>",
+    { headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, max-age=3600" } }
+  );
 }
 
 function nomeDaPagina(caminho) {

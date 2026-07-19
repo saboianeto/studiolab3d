@@ -31,6 +31,9 @@
 <meta property="og:description" content="Todas as peças que já saíram do estúdio, por categoria.">
 <meta property="og:url" content="https://studiolab3d.com.br/catalogo.html">
 <meta property="og:image" content="https://studiolab3d.com.br/img/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="1200">
+<meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
 <header class="nav">
@@ -98,6 +101,7 @@
       <span class="tagc" id="lbCat" style="align-self:flex-start"></span>
       <p id="lbTexto">Produzimos peças sob encomenda e temos algumas pronta-entrega. Personalização em 3D com filamentos PLA, ABS e PETG. Tudo para tornar seus produtos personalizados com qualidade.<br><br>Entre em contato para produzir sua peça em 3D com o seu toque e a sua cor.</p>
       <a id="lbWa" class="btn btn-primary btn-lg" href="#" target="_blank" rel="noopener">Pedir orçamento desta peça</a>
+      <button id="lbLink" class="btn btn-ghost" type="button" style="width:100%">Copiar link desta peça</button>
     </div>
   </div>
 </div>
@@ -187,14 +191,23 @@
   const pager = document.getElementById("pager");
   const pgInfo = document.getElementById("pgInfo");
   const nomeCat = Object.fromEntries(CATEGORIAS.map(c=>[c.id,c.nome]));
+  // mesma regra do servidor: o número no fim é a identidade, o texto é enfeite
+  const apelido = t => String(t||"")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")
+    .slice(0,60).replace(/-+$/,"");
+  const caminhoPeca = it => "/peca/" +
+    (it.nome && it.nome !== "Peça sob encomenda" ? apelido(it.nome)+"-" : "peca-") + it.id;
+  const linkPeca = it => location.origin + caminhoPeca(it);
   const linkWa = it => WA + encodeURIComponent(
-    "Olá! Quero pedir a peça " + it.cod + (it.nome!=="Peça sob encomenda" ? " ("+it.nome+")" : "") +
-    " que vi no catálogo do site."
+    "Olá! Gostaria de um orçamento da peça " + it.cod +
+    (it.nome !== "Peça sob encomenda" ? " (" + it.nome + ")" : "") + ".\n" + linkPeca(it)
   );
 
   // r = 1 -> foto enviada pelo painel (fica no R2). Sem r -> foto do repositório.
   const pad2 = n => String(n).padStart(2,"0");
   const monta = p => ({
+    id: p.i,
     cod: "OOMM-" + String(p.i).padStart(3,"0"),
     nome: p.n && p.n.trim() ? p.n.trim() : "Peça sob encomenda",
     cat: p.c,
@@ -267,6 +280,22 @@
   function sincronizaHash(){
     history.replaceState(null,"", "#"+catAtual+(pagina>1?("/"+pagina):""));
   }
+  function pecaDoLink(){
+    let q = window.__PECA ? String(window.__PECA) : null;
+    if(!q){
+      const m = location.pathname.match(/\/peca\/(?:.*-)?(\d{1,5})\/?$/);
+      if(m) q = m[1];
+    }
+    if(!q) q = new URLSearchParams(location.search).get("p");
+    if(!q) return null;
+    const alvo = itens.find(i => String(i.id) === String(q));
+    if(!alvo) return null;
+    catAtual = "todos";
+    const pos = itens.indexOf(alvo);
+    pagina = Math.floor(pos / POR_PAGINA) + 1;
+    return pos;
+  }
+
   function leHash(){
     const h = location.hash.replace("#","");
     if(!h) return;
@@ -364,9 +393,21 @@
       ? it.desc.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/\n/g,"<br>")
       : TEXTO_PADRAO;
     document.getElementById("lbWa").href = linkWa(it);
+    const bl = document.getElementById("lbLink");
+    bl.textContent = "Copiar link desta peça";
+    bl.onclick = async ()=>{
+      const url = linkPeca(it);
+      try{ await navigator.clipboard.writeText(url); bl.textContent = "Link copiado ✓"; }
+      catch(e){ window.prompt("Copie o link:", url); }
+      setTimeout(()=>{ bl.textContent = "Copiar link desta peça"; }, 2200);
+    };
+    history.replaceState(null, "", caminhoPeca(it));
     lb.classList.add("open"); document.body.style.overflow="hidden";
   }
-  function fechar(){ lb.classList.remove("open"); document.body.style.overflow=""; }
+  function fechar(){
+    lb.classList.remove("open"); document.body.style.overflow="";
+    history.replaceState(null, "", "/catalogo.html" + location.hash);
+  }
   function passo(d){ const n=(idx+d+visiveis.length)%visiveis.length; abrir(n); }
   document.getElementById("lbClose").addEventListener("click",fechar);
   document.getElementById("lbNext").addEventListener("click",e=>{e.stopPropagation();passo(1);});
@@ -379,7 +420,15 @@
     if(e.key==="ArrowLeft") passo(-1);
   });
 
-  leHash(); render(); carregarDaApi();
+  leHash(); render();
+  (function abrirDoLink(){
+    const pos = pecaDoLink();
+    if(pos === null) return;
+    render();
+    const idx = visiveis.findIndex(i => i.id === itens[pos].id);
+    if(idx >= 0) setTimeout(()=>abrir(idx), 60);
+  })();
+  carregarDaApi();
 })();
 </script>
 <script src="contexto.js" defer></script>

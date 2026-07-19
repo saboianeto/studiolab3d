@@ -56,9 +56,9 @@
     var item = assunto(a), pag = pagina(), org = origem();
 
     var t;
-    if (item) t = "Olá! Me interessei por “" + item + "” que vi no site.";
-    else if (pag) t = "Olá! Vim " + (pag.indexOf("o ") === 0 ? "d" + pag : "d" + pag) + " do site e queria um orçamento.";
-    else t = "Olá! Vim pelo site e queria um orçamento.";
+    if (item) t = "Olá! Gostaria de um orçamento de “" + item + "”, que vi no site.";
+    else if (pag) t = "Olá! Gostaria de um orçamento. Vim d" + pag + " do site.";
+    else t = "Olá! Gostaria de um orçamento. Vim pelo site.";
 
     if (org) t += " (cheguei pelo " + org + ")";
     return t;
