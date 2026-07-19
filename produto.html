@@ -69,14 +69,18 @@
       </div>
 
       <div class="pd-info">
-        <p class="pd-cod"><span id="pCod">—</span> <span class="pd-status">Produzido sob encomenda</span></p>
+        <p class="pd-cod"><span id="pCod">—</span> <span class="pd-status" id="pEstoque">Produzido sob encomenda</span></p>
         <h1 id="pNome">Carregando…</h1>
+        <div class="pd-nota" id="blocoNota">
+          <div class="estrelas" id="estrelas" role="group" aria-label="Avaliar esta peça"></div>
+          <span class="pd-nota-txt" id="notaTxt">Seja o primeiro a avaliar</span>
+        </div>
         <p class="pd-desc" id="pDesc"></p>
 
         <div class="pd-bloco" id="blocoCores" hidden>
-          <h3>Cores disponíveis</h3>
+          <h3 id="tituloCores">Cores disponíveis</h3>
           <div class="pd-cores" id="pCores"></div>
-          <p class="pd-mini">Outras cores sob consulta — trabalhamos com mais de 30 filamentos.</p>
+          <p class="pd-mini" id="obsCores">Outras cores sob consulta — trabalhamos com mais de 30 filamentos.</p>
         </div>
 
         <div class="pd-bloco">
@@ -91,6 +95,21 @@
           <a id="btnZap" class="btn btn-primary btn-lg" href="#" target="_blank" rel="noopener">Falar no WhatsApp</a>
           <button id="btnFav" class="btn btn-ghost btn-lg" type="button">♡ &nbsp;Salvar nos favoritos</button>
           <button id="btnLink" class="btn-texto" type="button">Copiar link desta peça</button>
+          <div class="pd-share">
+            <span class="pd-share-lbl">Compartilhar</span>
+            <div class="pd-share-btns">
+              <a id="shZap"  target="_blank" rel="noopener" aria-label="Enviar por WhatsApp" title="WhatsApp">
+                <svg viewBox="0 0 24 24"><path d="M3.5 20.5 4.6 16.6A8.9 8.9 0 1 1 8 19.7l-4.5.8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></a>
+              <a id="shMail" aria-label="Enviar por e-mail" title="E-mail">
+                <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m3.6 6.4 8.4 6 8.4-6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></a>
+              <a id="shFb" target="_blank" rel="noopener" aria-label="Compartilhar no Facebook" title="Facebook">
+                <svg viewBox="0 0 24 24"><path d="M14 8.5V7c0-.8.3-1.2 1.2-1.2H17V3h-2.6C11.8 3 11 4.4 11 6.6v1.9H9V11h2v10h3V11h2.2l.4-2.5H14z" fill="currentColor"/></svg></a>
+              <a id="shTg" target="_blank" rel="noopener" aria-label="Compartilhar no Telegram" title="Telegram">
+                <svg viewBox="0 0 24 24"><path d="M21 4 3 11l5 1.8L18.5 6.7 10 14.2l-.3 5 2.9-2.8 4.6 3.4L21 4z" fill="currentColor"/></svg></a>
+              <button id="shCopia" type="button" aria-label="Copiar link" title="Copiar link">
+                <svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 15H5.5A1.5 1.5 0 0 1 4 13.5v-8A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button>
+            </div>
+          </div>
           <ul class="pd-garantias">
             <li><b>A partir de 1 unidade.</b> Sem pedido mínimo.</li>
             <li><b>Prova antes do lote.</b> Você aprova a peça antes da tiragem.</li>
@@ -104,6 +123,24 @@
     <section class="pd-relacionados" id="relacionados" hidden>
       <div class="section-head"><h2>Peças parecidas</h2></div>
       <div class="cat-grid" id="gradeRel"></div>
+    </section>
+
+    <section class="pd-relacionados" id="secVistas" hidden>
+      <div class="section-head"><h2>As mais visitadas</h2>
+        <p>O que mais gente veio ver no catálogo.</p></div>
+      <div class="cat-grid" id="gradeVistas"></div>
+    </section>
+
+    <section class="pd-relacionados" id="secFav" hidden>
+      <div class="section-head"><h2>As mais favoritadas</h2>
+        <p>As peças que mais receberam coração.</p></div>
+      <div class="cat-grid" id="gradeFav"></div>
+    </section>
+
+    <section class="pd-relacionados" id="secPed" hidden>
+      <div class="section-head"><h2>As mais pedidas</h2>
+        <p>As que mais viraram conversa no WhatsApp.</p></div>
+      <div class="cat-grid" id="gradePed"></div>
     </section>
   </div>
 </main>
@@ -146,6 +183,7 @@
 <script src="favoritos.js"></script>
 <script src="contexto.js" defer></script>
 <script src="metricas.js" defer></script>
+<script src="convite.js" defer></script>
 <script>
 (function(){
   "use strict";
@@ -177,7 +215,10 @@
     return {
       id:p.i, cat:p.c, selo:p.s||"", desc:(p.d||"").trim(),
       cores: Array.isArray(p.co) ? p.co : [],
-      material: p.m || "",
+      qtdCores: Number(p.qc) || 1,
+      combos: Array.isArray(p.cb) ? p.cb : [],
+      materiais: Array.isArray(p.mt) ? p.mt : (p.m ? [p.m] : []),
+      estoque: p.e === 0 ? 0 : 1,
       nome, cod:"OOMM-"+String(p.i).padStart(3,"0"),
       thumb: p.r ? "/fotos/t/p"+p.i+".jpg" : "/img/catalogo/t/p"+pad2(p.i)+".jpg",
       full:  p.r ? "/fotos/p"+p.i+".jpg"   : "/img/catalogo/p"+pad2(p.i)+".jpg",
@@ -214,8 +255,24 @@
       sl.hidden = false;
     }
 
-    if(it.cores.length){
+    const est = $("#pEstoque");
+    if(it.estoque){ est.textContent = "Pronta-entrega"; est.className = "pd-status"; }
+    else { est.textContent = "Sob encomenda"; est.className = "pd-status encomenda"; }
+
+    if(it.qtdCores > 1 && it.combos.length){
       $("#blocoCores").hidden = false;
+      $("#tituloCores").textContent = "Combinações de " + it.qtdCores + " cores";
+      $("#pCores").innerHTML = it.combos.map(cb=>{
+        const partes = cb.split("+");
+        return '<span class="cor combo" title="'+partes.join(" e ")+'">'+
+          partes.map(c=>'<i style="background:'+(PALETA[c]||"#CCC")+'"></i>').join("")+
+          partes.map(c=>c.replace(/-/g," ")).join(" e ")+'</span>';
+      }).join("");
+      $("#obsCores").textContent = "Esta peça é impressa em " + it.qtdCores +
+        " cores. Outras combinações sob consulta.";
+    } else if(it.cores.length){
+      $("#blocoCores").hidden = false;
+      $("#tituloCores").textContent = "Cores disponíveis";
       $("#pCores").innerHTML = it.cores.map(c=>
         '<span class="cor" title="'+c+'"><i style="background:'+(PALETA[c]||"#CCC")+'"></i>'+
         c.replace(/-/g," ")+'</span>').join("");
@@ -223,7 +280,8 @@
 
     $("#pLista").innerHTML = [
       ["Produção", "sob encomenda, a partir de 1 unidade"],
-      ["Material", it.material || "PLA, ABS ou PETG conforme o uso"],
+      ["Material", it.materiais.length ? it.materiais.join(" ou ") : "PLA, ABS ou PETG conforme o uso"],
+      ["Disponibilidade", it.estoque ? "pronta-entrega, sujeito a estoque" : "produzida sob encomenda"],
       ["Personalização", "cor, tamanho, nome, data ou logo"],
       ["Prazo", "combinado na conversa, conforme a tiragem"],
       ["Envio", "todo o Brasil · retirada em São Paulo"]
@@ -260,17 +318,117 @@
     lb.onclick = e=>{ if(e.target===lb) fechar(); };
     document.addEventListener("keydown", e=>{ if(e.key==="Escape") fechar(); });
 
+    montarEstrelas(it);
+    montarCompartilhar(it);
+
     // parecidas
     const irmas = LISTA.map(monta).filter(x=>x.cat===it.cat && x.id!==it.id).slice(0,4);
     if(irmas.length){
       $("#relacionados").hidden = false;
-      $("#gradeRel").innerHTML = irmas.map(x=>
-        '<a class="cat-card" href="'+x.link+'" style="display:block;text-decoration:none">'+
-        '<div class="sh"><img src="'+x.thumb+'" loading="lazy" alt="'+x.nome+'">'+
-        (x.selo && SELOS[x.selo] ? '<span class="selo selo-'+x.selo+'">'+SELOS[x.selo]+'</span>' : '')+
-        '</div><div class="meta"><div><div class="nm">'+x.nome+'</div>'+
-        '<div class="cod">'+x.cod+'</div></div></div></a>').join("");
+      $("#gradeRel").innerHTML = irmas.map(cartao).join("");
     }
+  }
+
+  /* ---------- avaliação em estrelas ---------- */
+  let NOTAS = {};
+  function montarEstrelas(it){
+    const cx = $("#estrelas"), txt = $("#notaTxt");
+    const info = NOTAS[it.id];
+    const minha = Favoritos.notaDada(it.id);
+    const media = info ? Number(info.media) : 0;
+
+    function pintarEstrelas(valor, minhaNota){
+      cx.innerHTML = [1,2,3,4,5].map(n=>
+        '<button class="estrela'+(n <= Math.round(valor) ? " on" : "")+
+        (minhaNota && n <= minhaNota ? " minha" : "")+'" data-n="'+n+'" type="button" '+
+        'aria-label="'+n+' de 5">★</button>').join("");
+      cx.querySelectorAll(".estrela").forEach(b=>{
+        b.onclick = ()=>votar(it, Number(b.dataset.n));
+        b.onmouseenter = ()=>cx.querySelectorAll(".estrela").forEach((x,i)=>
+          x.classList.toggle("hover", i < Number(b.dataset.n)));
+      });
+      cx.onmouseleave = ()=>cx.querySelectorAll(".estrela").forEach(x=>x.classList.remove("hover"));
+    }
+
+    function texto(){
+      if(info && info.total)
+        txt.textContent = Number(info.media).toFixed(1).replace(".",",") + " · " +
+          info.total + (info.total === 1 ? " avaliação" : " avaliações") +
+          (minha ? " · você deu " + minha : "");
+      else txt.textContent = minha ? "Você deu " + minha + " de 5" : "Seja o primeiro a avaliar";
+    }
+
+    async function votar(peca, n){
+      if(Favoritos.notaDada(peca.id)){ txt.textContent = "Você já avaliou esta peça."; return; }
+      Favoritos.guardarNota(peca.id, n);
+      pintarEstrelas(n, n);
+      txt.textContent = "Obrigado pela avaliação!";
+      try{
+        const r = await fetch("/api/avaliar", {method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({peca: peca.id, nota: n, marca: Favoritos.marca()})});
+        const d = await r.json();
+        if(d && d.ok){ NOTAS[peca.id] = {media:d.media, total:d.total}; }
+      }catch(e){}
+    }
+
+    pintarEstrelas(media || minha, minha);
+    texto();
+  }
+
+  /* ---------- compartilhar ---------- */
+  function montarCompartilhar(it){
+    const url = location.origin + it.link;
+    const txt = "Olha esta peça da OOMM Studio: " + it.nome;
+    $("#shZap").href  = "https://wa.me/?text=" + encodeURIComponent(txt + "\n" + url);
+    $("#shMail").href = "mailto:?subject=" + encodeURIComponent(it.nome + " · OOMM Studio") +
+                        "&body=" + encodeURIComponent(txt + "\n\n" + url);
+    $("#shFb").href   = "https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(url);
+    $("#shTg").href   = "https://t.me/share/url?url=" + encodeURIComponent(url) +
+                        "&text=" + encodeURIComponent(txt);
+    $("#shCopia").onclick = async ()=>{
+      try{
+        if(navigator.share){ await navigator.share({title: it.nome, text: txt, url}); return; }
+        await navigator.clipboard.writeText(url);
+        $("#shCopia").classList.add("ok");
+        setTimeout(()=>$("#shCopia").classList.remove("ok"), 1600);
+      }catch(e){}
+    };
+  }
+
+  /* ---------- listas de destaque ---------- */
+  function cartao(x){
+    return '<a class="cat-card" href="'+x.link+'" style="display:block;text-decoration:none">'+
+      '<div class="sh"><img src="'+x.thumb+'" loading="lazy" alt="'+x.nome+'">'+
+      (x.selo && SELOS[x.selo] ? '<span class="selo selo-'+x.selo+'">'+SELOS[x.selo]+'</span>' : '')+
+      '</div><div class="meta"><div><div class="nm">'+x.nome+'</div>'+
+      '<div class="cod">'+x.cod+'</div></div></div></a>';
+  }
+
+  async function montarDestaques(atual){
+    try{
+      const r = await fetch("/api/destaques", {cache:"no-store"});
+      if(!r.ok) return;
+      const d = await r.json();
+      const secoes = [["vistas","#secVistas","#gradeVistas"],
+                      ["favoritas","#secFav","#gradeFav"],
+                      ["pedidas","#secPed","#gradePed"]];
+      secoes.forEach(([chave, sec, grade])=>{
+        const ids = (d[chave]||[]).filter(id=>id !== atual).slice(0,4);
+        if(!ids.length) return;
+        const itens = ids.map(id=>LISTA.find(x=>x.i===id)).filter(Boolean).map(monta);
+        if(!itens.length) return;
+        $(sec).hidden = false;
+        $(grade).innerHTML = itens.map(cartao).join("");
+      });
+    }catch(e){}
+  }
+
+  async function carregarNotas(){
+    try{
+      const r = await fetch("/api/notas", {cache:"no-store"});
+      if(r.ok) NOTAS = await r.json();
+    }catch(e){}
   }
 
   function achar(){
@@ -300,6 +458,7 @@
   }
 
   async function iniciar(){
+    await carregarNotas();
     if(render()) { atualizarDepois(); return; }   // achou na lista local
     const ok = await buscarApi();
     if(ok && render()) return;
@@ -321,6 +480,13 @@
   // já achamos na lista local, mas a do servidor pode ter nome e cores mais novos
   async function atualizarDepois(){
     if(await buscarApi()) render();
+    const id = Number(idAtual());
+    montarDestaques(id);
+    // conta que esta peça foi vista
+    try{
+      const corpo = JSON.stringify({tipo:"peca-vista", alvo:"OOMM-"+String(id).padStart(3,"0"), origem:"produto"});
+      if(navigator.sendBeacon) navigator.sendBeacon("/api/evento", new Blob([corpo],{type:"application/json"}));
+    }catch(e){}
   }
 
   iniciar();

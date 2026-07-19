@@ -96,13 +96,19 @@
     <button class="lb-nav lb-next" id="lbNext" aria-label="Próxima peça">›</button>
     <div class="im"><img id="lbImg" src="" alt=""></div>
     <div class="info">
-      <div class="cod" id="lbCod"></div>
-      <h3 id="lbNome"></h3>
-      <span class="tagc" id="lbCat" style="align-self:flex-start"></span>
-      <p id="lbTexto">Produzimos peças sob encomenda e temos algumas pronta-entrega. Personalização em 3D com filamentos PLA, ABS e PETG. Tudo para tornar seus produtos personalizados com qualidade.<br><br>Entre em contato para produzir sua peça em 3D com o seu toque e a sua cor.</p>
-      <a id="lbWa" class="btn btn-primary btn-lg" href="#" target="_blank" rel="noopener">Pedir orçamento desta peça</a>
-      <a id="lbSaiba" class="btn btn-ghost saiba" href="#">Saiba mais sobre esta peça</a>
-      <button id="lbLink" class="btn-texto" type="button" style="width:100%">Copiar link desta peça</button>
+      <div class="lb-topo">
+        <div class="cod" id="lbCod"></div>
+        <h3 id="lbNome"></h3>
+        <span class="tagc" id="lbCat"></span>
+      </div>
+      <div class="lb-acoes">
+        <a id="lbWa" class="btn btn-primary" href="#" target="_blank" rel="noopener">Pedir orçamento</a>
+        <a id="lbSaiba" class="btn btn-ghost" href="#">Ver detalhes</a>
+        <button id="lbLink" class="btn-texto" type="button">Copiar link</button>
+      </div>
+      <div class="lb-corpo">
+        <p id="lbTexto">Produzimos peças sob encomenda e temos algumas pronta-entrega. Personalização em 3D com filamentos PLA, ABS e PETG. Tudo para tornar seus produtos personalizados com qualidade.<br><br>Entre em contato para produzir sua peça em 3D com o seu toque e a sua cor.</p>
+      </div>
     </div>
   </div>
 </div>
@@ -473,5 +479,6 @@
 </script>
 <script src="contexto.js" defer></script>
 <script src="metricas.js" defer></script>
+<script src="convite.js" defer></script>
 </body>
 </html>

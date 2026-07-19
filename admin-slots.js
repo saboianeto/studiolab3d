@@ -921,14 +921,20 @@ const SUGESTOES = {
  ]
 };
 
+
+
+/* cores disponíveis no estúdio */
 const PALETA = {
  "branco": "#F2F0EC",
  "preto": "#1E1E20",
+ "cinza": "#9AA0A6",
+ "prata": "#C2C6CB",
  "vermelho": "#D3312C",
  "rosa": "#EE6FA0",
  "pink": "#E5187F",
  "laranja": "#F07C1E",
  "amarelo": "#F2C230",
+ "dourado": "#C6A24A",
  "verde": "#2E9E52",
  "verde-agua": "#33B5A6",
  "azul": "#2668C4",
@@ -936,10 +942,19 @@ const PALETA = {
  "roxo": "#7B4FBF",
  "lilas": "#B79BE0",
  "marrom": "#7A5238",
- "cinza": "#9AA0A6",
- "dourado": "#C6A24A",
- "prata": "#C2C6CB",
+ "bege": "#D9C7AE",
  "transparente": "#E8EEF2"
 };
 
-const MATERIAIS = ["","PLA","PLA silk","PETG","ABS","TPU flexível","PLA + PETG"];
+/* toda peça já nasce com estas — são as que sempre temos em casa */
+const CORES_PADRAO = ["branco","azul","preto","vermelho"];
+
+const MATERIAIS = ["PLA","PLA silk","PETG","ABS","TPU flexível"];
+
+/* Quantas cores a peça leva. Uma peça de 2 cores é impressa em duas partes,
+   então o cliente escolhe uma combinação, não uma cor solta.               */
+const QTD_CORES = [
+  {v:1, nome:"1 cor"},
+  {v:2, nome:"2 cores"},
+  {v:3, nome:"3 cores"}
+];

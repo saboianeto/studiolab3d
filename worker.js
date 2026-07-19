@@ -26,6 +26,10 @@ export default {
     try {
       if (p === "/api/catalogo")        return await catalogoPublico(request, env);
       if (p === "/api/evento")          return await registrarEvento(request, env);
+      if (p === "/api/favorito")        return await registrarFavorito(request, env);
+      if (p === "/api/avaliar")         return await avaliar(request, env);
+      if (p === "/api/notas")           return await notas(request, env);
+      if (p === "/api/destaques")       return await destaques(request, env);
       if (p === "/sitemap.xml")         return await sitemap(request, env);
       if (p.startsWith("/api/admin/"))  return await rotaAdmin(request, env, url);
       if (p.startsWith("/fotos/"))      return await servirFoto(request, env, url, ctx);
@@ -254,7 +258,11 @@ async function rotaAdmin(request, env, url) {
     const corpo = await request.json();
     if (!corpo || !Array.isArray(corpo.produtos))
       return json({ erro: "Formato inválido." }, 400);
-    await env.DADOS.put("catalogo", JSON.stringify(corpo));
+    await env.DADOS.put("catalogo", JSON.stringify({
+      categorias: corpo.categorias || [],
+      produtos: corpo.produtos,
+      config: corpo.config || {}
+    }));
     return json({ ok: true, pecas: corpo.produtos.length });
   }
 
@@ -295,6 +303,7 @@ async function rotaAdmin(request, env, url) {
   }
 
   if (p === "/api/admin/metricas" && request.method === "GET") {
+    ctxRegistrarAcesso(request, env);
     return json(await metricas(env, Number(url.searchParams.get("dias") || 30)));
   }
 
@@ -309,7 +318,7 @@ async function rotaAdmin(request, env, url) {
 
 /* ---------------------------------------------------------------- métricas */
 
-const TIPOS = new Set(["pagina", "whatsapp", "loja", "peca", "link"]);
+const TIPOS = new Set(["pagina", "whatsapp", "loja", "peca", "link", "peca-vista", "favorito"]);
 let tabelaPronta = false;
 
 async function prepararTabela(env) {
@@ -320,6 +329,16 @@ async function prepararTabela(env) {
   );
   await env.METRICAS.exec("CREATE INDEX IF NOT EXISTS idx_dia ON eventos (dia);");
   await env.METRICAS.exec("CREATE INDEX IF NOT EXISTS idx_tipo ON eventos (tipo, dia);");
+  await env.METRICAS.exec(
+    "CREATE TABLE IF NOT EXISTS notas (peca INTEGER NOT NULL, quem TEXT NOT NULL, " +
+    "nota INTEGER NOT NULL, ts INTEGER NOT NULL, PRIMARY KEY (peca, quem));"
+  );
+  await env.METRICAS.exec("CREATE INDEX IF NOT EXISTS idx_notas ON notas (peca);");
+  await env.METRICAS.exec(
+    "CREATE TABLE IF NOT EXISTS acessos (email TEXT NOT NULL, entrou INTEGER NOT NULL, " +
+    "visto INTEGER NOT NULL, dia TEXT NOT NULL);"
+  );
+  await env.METRICAS.exec("CREATE INDEX IF NOT EXISTS idx_acessos ON acessos (email, dia);");
   tabelaPronta = true;
 }
 
@@ -352,6 +371,31 @@ async function registrarEvento(request, env) {
   return json({ ok: true });
 }
 
+// Quem entrou no painel e por quanto tempo. Uma linha por sessão, atualizada
+// enquanto a pessoa continua usando — assim dá para somar tempo sem rastrear nada.
+async function ctxRegistrarAcesso(request, env) {
+  if (!env.METRICAS) return;
+  const email = (request.headers.get("Cf-Access-Authenticated-User-Email") || "").toLowerCase();
+  if (!email) return;
+  try {
+    await prepararTabela(env);
+    const agora = Date.now();
+    const dia = new Date(agora).toISOString().slice(0, 10);
+    const ultimo = await env.METRICAS.prepare(
+      "SELECT rowid, visto FROM acessos WHERE email = ? ORDER BY visto DESC LIMIT 1"
+    ).bind(email).first();
+    // menos de 30 min desde o último sinal = mesma sessão
+    if (ultimo && agora - ultimo.visto < 30 * 60000) {
+      await env.METRICAS.prepare("UPDATE acessos SET visto = ? WHERE rowid = ?")
+        .bind(agora, ultimo.rowid).run();
+    } else {
+      await env.METRICAS.prepare(
+        "INSERT INTO acessos (email, entrou, visto, dia) VALUES (?, ?, ?, ?)"
+      ).bind(email, agora, agora, dia).run();
+    }
+  } catch (e) {}
+}
+
 async function metricas(env, dias) {
   if (!env.METRICAS) return { semBanco: true };
   await prepararTabela(env);
@@ -360,18 +404,107 @@ async function metricas(env, dias) {
 
   const q = async (sql) => (await env.METRICAS.prepare(sql).bind(corte).all()).results || [];
 
-  const [totais, porDia, paginas, pecas, lojas, origens] = await Promise.all([
+  const [totais, porDia, paginas, pecas, lojas, origens, favoritas, avaliadas, acessos] = await Promise.all([
     q("SELECT tipo, COUNT(*) n FROM eventos WHERE dia >= ? GROUP BY tipo"),
     q("SELECT dia, tipo, COUNT(*) n FROM eventos WHERE dia >= ? GROUP BY dia, tipo ORDER BY dia"),
     q("SELECT alvo, COUNT(*) n FROM eventos WHERE dia >= ? AND tipo='pagina' GROUP BY alvo ORDER BY n DESC LIMIT 12"),
     q("SELECT alvo, COUNT(*) n FROM eventos WHERE dia >= ? AND tipo='peca'   GROUP BY alvo ORDER BY n DESC LIMIT 12"),
     q("SELECT alvo, COUNT(*) n FROM eventos WHERE dia >= ? AND tipo='loja'   GROUP BY alvo ORDER BY n DESC LIMIT 10"),
-    q("SELECT origem alvo, COUNT(*) n FROM eventos WHERE dia >= ? AND tipo='pagina' GROUP BY origem ORDER BY n DESC LIMIT 10")
+    q("SELECT origem alvo, COUNT(*) n FROM eventos WHERE dia >= ? AND tipo='pagina' GROUP BY origem ORDER BY n DESC LIMIT 10"),
+    q("SELECT alvo, COUNT(*) n FROM eventos WHERE dia >= ? AND tipo='favorito' AND origem='entrou' GROUP BY alvo ORDER BY n DESC LIMIT 10"),
+    (async () => ((await env.METRICAS.prepare(
+      "SELECT peca, ROUND(AVG(nota),2) media, COUNT(*) n FROM notas GROUP BY peca " +
+      "HAVING n >= 1 ORDER BY media DESC, n DESC LIMIT 10").all()).results || []))(),
+    (async () => ((await env.METRICAS.prepare(
+      "SELECT email, COUNT(*) sessoes, SUM(visto - entrou) tempo, MAX(visto) ultimo " +
+      "FROM acessos WHERE dia >= ? GROUP BY email ORDER BY sessoes DESC").bind(corte).all()).results || []))()
   ]);
 
   const t = {};
   totais.forEach(r => t[r.tipo] = r.n);
-  return { dias: d, totais: t, porDia, paginas, pecas, lojas, origens };
+  return { dias: d, totais: t, porDia, paginas, pecas, lojas, origens, favoritas, avaliadas, acessos };
+}
+
+/* --------------------------------------------------- favoritos e avaliações */
+
+// Marcar como favorito é anônimo: guardamos só que a peça X ganhou um coração.
+async function registrarFavorito(request, env) {
+  if (request.method !== "POST") return json({ erro: "Método não permitido." }, 405);
+  if (!env.METRICAS) return json({ ok: false });
+  if (ROBO.test(request.headers.get("User-Agent") || "")) return json({ ok: true });
+  let c; try { c = await request.json(); } catch { return json({ erro: "Corpo inválido." }, 400); }
+  const peca = String(c.peca || "").slice(0, 12);
+  if (!/^\d{1,5}$/.test(peca)) return json({ erro: "Peça inválida." }, 400);
+  try {
+    await prepararTabela(env);
+    const agora = Date.now();
+    await env.METRICAS.prepare(
+      "INSERT INTO eventos (ts, dia, tipo, alvo, origem) VALUES (?, ?, 'favorito', ?, ?)"
+    ).bind(agora, new Date(agora).toISOString().slice(0, 10), "OOMM-" + peca.padStart(3, "0"),
+           c.tirou ? "saiu" : "entrou").run();
+  } catch (e) {}
+  return json({ ok: true });
+}
+
+// Identidade fraca de propósito: sem login, o melhor possível é amarrar o voto
+// ao navegador e à rede. Serve para um catálogo; não é urna eletrônica.
+function assinatura(request, c) {
+  const ip = request.headers.get("CF-Connecting-IP") || "0";
+  const marca = String(c && c.marca || "").slice(0, 40);
+  return (marca || "sem-marca") + "|" + ip;
+}
+
+async function avaliar(request, env) {
+  if (request.method !== "POST") return json({ erro: "Método não permitido." }, 405);
+  if (!env.METRICAS) return json({ erro: "Avaliações indisponíveis." }, 503);
+  if (ROBO.test(request.headers.get("User-Agent") || "")) return json({ ok: true });
+  let c; try { c = await request.json(); } catch { return json({ erro: "Corpo inválido." }, 400); }
+  const peca = Number(c.peca), nota = Number(c.nota);
+  if (!(peca > 0) || !(nota >= 1 && nota <= 5)) return json({ erro: "Dados inválidos." }, 400);
+  try {
+    await prepararTabela(env);
+    await env.METRICAS.prepare(
+      "INSERT INTO notas (peca, quem, nota, ts) VALUES (?, ?, ?, ?) " +
+      "ON CONFLICT (peca, quem) DO UPDATE SET nota = excluded.nota, ts = excluded.ts"
+    ).bind(peca, assinatura(request, c), nota, Date.now()).run();
+    const r = await env.METRICAS.prepare(
+      "SELECT AVG(nota) media, COUNT(*) total FROM notas WHERE peca = ?"
+    ).bind(peca).first();
+    return json({ ok: true, media: r ? Number(r.media) : nota, total: r ? r.total : 1 });
+  } catch (e) { return json({ erro: "Não consegui registrar." }, 500); }
+}
+
+async function notas(request, env) {
+  if (!env.METRICAS) return json({});
+  try {
+    await prepararTabela(env);
+    const r = await env.METRICAS.prepare(
+      "SELECT peca, ROUND(AVG(nota), 2) media, COUNT(*) total FROM notas GROUP BY peca"
+    ).all();
+    const saida = {};
+    (r.results || []).forEach(x => saida[x.peca] = { media: x.media, total: x.total });
+    return json(saida, 200, { "Cache-Control": CACHE_API });
+  } catch (e) { return json({}); }
+}
+
+// Listas usadas na página do produto: mais vistas, mais favoritadas, mais pedidas.
+async function destaques(request, env) {
+  if (!env.METRICAS) return json({ vistas: [], favoritas: [], pedidas: [] });
+  try {
+    await prepararTabela(env);
+    const num = "CAST(REPLACE(alvo,'OOMM-','') AS INTEGER)";
+    const q = async (onde) => ((await env.METRICAS.prepare(
+      "SELECT " + num + " peca, COUNT(*) n FROM eventos WHERE " + onde +
+      " AND alvo LIKE 'OOMM-%' GROUP BY peca ORDER BY n DESC LIMIT 8"
+    ).all()).results || []).map(x => x.peca);
+
+    const [vistas, favoritas, pedidas] = await Promise.all([
+      q("tipo='peca-vista'"),
+      q("tipo='favorito' AND origem='entrou'"),
+      q("tipo='peca'")
+    ]);
+    return json({ vistas, favoritas, pedidas }, 200, { "Cache-Control": CACHE_API });
+  } catch (e) { return json({ vistas: [], favoritas: [], pedidas: [] }); }
 }
 
 /* ------------------------------------------------------------------ fotos */
