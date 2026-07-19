@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Admin · OOMM Studio</title>
-<!-- ADMIN v7 · 18/07/2026 — sem tela de login: a proteção é do Cloudflare Access -->
+<!-- ADMIN v9 · 19/07/2026 — sem tela de login: a proteção é do Cloudflare Access -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{--ink:#2A2126;--paper:#F4ECE3;--card:#fff;--line:#E3D6C9;--teal:#A63E60;--teal-d:#9B3A58;
@@ -100,7 +100,7 @@
 <div id="telaPainel">
   <header class="top">
     <h1>Admin · OOMM Studio</h1>
-    <span class="quem" id="quem"></span><span class="quem" style="margin-left:0;opacity:.7">· v7 · 18/07/2026</span>
+    <span class="quem" id="quem"></span><span class="quem" style="margin-left:0;opacity:.7">· v9 · 19/07/2026</span>
     <a href="editor-catalogo.html" style="color:#EE9CB2;font-size:13.5px;text-decoration:underline">Editor de categorias</a>
     <button id="sair" style="background:transparent;border-color:#5A424C;color:#fff;padding:7px 13px;font-size:13.5px">Sair</button>
   </header>
@@ -112,6 +112,7 @@
       <button class="aba" role="tab" aria-selected="true" data-p="cat">Catálogo</button>
       <button class="aba" role="tab" aria-selected="false" data-p="pag">Fotos das páginas</button>
       <button class="aba" role="tab" aria-selected="false" data-p="txt">Textos do site</button>
+      <button class="aba" role="tab" aria-selected="false" data-p="seo">Google &amp; buscas</button>
     </div>
 
     <!-- ABA CATÁLOGO -->
@@ -122,6 +123,15 @@
         <input type="file" id="arquivo" accept="image/*" multiple hidden>
       </div>
       <div class="grade" id="gradeCat"></div>
+    </section>
+
+    <!-- ABA SEO -->
+    <section class="painel" id="p-seo" hidden>
+      <p style="color:var(--muted);margin:0 0 20px;font-size:15px">
+        É isto que aparece no Google e quando alguém compartilha o link no WhatsApp.
+        A prévia abaixo de cada página mostra como vai ficar.
+      </p>
+      <div id="listaSeo"></div>
     </section>
 
     <!-- ABA TEXTOS -->
@@ -136,7 +146,7 @@
     <!-- ABA PÁGINAS -->
     <section class="painel" id="p-pag" hidden>
       <p style="color:var(--muted);margin:0 0 20px;font-size:15px">
-        Cada linha é uma foto que aparece no site. Troque as que já existem ou acrescente novas ao fim de cada página.
+        Cada linha é uma foto que aparece no site. Troque as que já existem ou acrescente novas ao fim de cada página. Aceita <b>foto ou vídeo curto</b> — o vídeo entra em loop, sem som.
       </p>
       <div id="listaSlots"></div>
     </section>
@@ -206,14 +216,15 @@
           Object.entries(sels).forEach(([sel,mapa])=>
             Object.entries(mapa).forEach(([i,txt])=>{ textosEdit[pag+"|"+sel+"|"+i] = txt; })));
         Object.entries(window.__pub.ocultos).forEach(([pag,arr])=> ocultos[pag] = new Set(arr));
+        Object.entries(window.__pub.seo||{}).forEach(([pag,v])=> seoEdit[pag] = v);
       }
-    }catch(e){ window.__pub = {fotos:{},textos:{},ocultos:{},novos:{}}; }
+    }catch(e){ window.__pub = {fotos:{},textos:{},ocultos:{},novos:{},seo:{}}; }
     $("#quem").textContent = email || "sessão autenticada";
     msg($("#avisoModo"),
       "As fotos são processadas aqui no seu navegador — nada é enviado para a internet. "+
       "Ao terminar, clique em <b>Publicar no site</b> — as alterações vão ao ar na hora.",
       "ok");
-    montarCatalogo(); montarSlots(); montarTextos(); contar();
+    montarCatalogo(); montarSlots(); montarTextos(); montarSeo(); contar();
   })();
 
   $("#sair").addEventListener("click", ()=>{ location.href = "/cdn-cgi/access/logout"; });
@@ -224,6 +235,7 @@
   const edicoes = {};              // i -> {c, n}
   const trocas = {};               // "pagina|idx" -> {blob, url, nome}
   const textosEdit = {};           // "pagina|sel|idx" -> texto
+  const seoEdit = {};              // pagina -> {titulo, descricao}
   const novosCards = {};           // pagina -> [{img, blob, url, titulo, desc, chips}]
   const ocultos = {};              // pagina -> Set de índices de card
   let proximoId = Math.max(0, ...PRODUTOS.map(p=>p.i)) + 1;
@@ -265,7 +277,7 @@
       try{
         const full  = await processar(f, 1456, 0.85);
         const thumb = await processar(f, 760,  0.78);
-        novas.push({id:proximoId++, cat:"brindes", nome:"", selo:"", full, thumb, url:URL.createObjectURL(thumb)});
+        novas.push({id:proximoId++, cat:"brindes", nome:"", selo:"", desc:"", full, thumb, url:URL.createObjectURL(thumb)});
       }catch(err){ alert("Não consegui ler "+f.name+": "+err.message); }
     }
     drop.querySelector("b").textContent = "Arraste fotos aqui ou clique para escolher";
@@ -286,9 +298,11 @@
         '<div class="im"><span class="badge">NOVA</span><img src="'+n.url+'" alt=""></div>'+
         '<div class="bd"><div class="cod">OOMM-'+String(n.id).padStart(3,"0")+'</div>'+
         sel(n.cat)+selSelo(n.selo)+'<input type="text" placeholder="nome (opcional)" value="'+n.nome+'">'+
+        campoDesc(n.desc||"")+
         '<button class="lixo">Remover</button></div>';
       el.querySelectorAll("select")[0].onchange = e => n.cat = e.target.value;
       el.querySelectorAll("select")[1].onchange = e => n.selo = e.target.value;
+      ligaDesc(el, n.cat, t => { n.desc = t; contar(); }, ()=>n.cat).value = n.desc||"";
       el.querySelector("input").oninput  = e => n.nome = e.target.value;
       el.querySelector(".lixo").onclick  = ()=>{ novas.splice(novas.indexOf(n),1); montarCatalogo(); contar(); };
       el.querySelector(".im").onclick = ()=>abrirZoom(n.url);
@@ -297,16 +311,19 @@
 
     PRODUTOS.forEach(p=>{
       if(removidas.has(p.i)) return;
-      const e0 = edicoes[p.i] || {c:p.c, n:p.n, s:p.s};
+      const e0 = edicoes[p.i] || {c:p.c, n:p.n, s:p.s, d:p.d};
       const el = document.createElement("div"); el.className = "peca";
       const arq = p.r ? "/fotos/t/p"+p.i+".jpg" : BASE+"img/catalogo/t/p"+String(p.i).padStart(2,"0")+".jpg";
       el.innerHTML =
         '<div class="im"><img src="'+arq+'" loading="lazy" alt=""></div>'+
         '<div class="bd"><div class="cod">OOMM-'+String(p.i).padStart(3,"0")+'</div>'+
         sel(e0.c)+selSelo(e0.s)+'<input type="text" placeholder="nome (opcional)" value="'+(e0.n||"").replace(/"/g,"&quot;")+'">'+
+        campoDesc(e0.d||"")+
         '<button class="lixo">Tirar do catálogo</button></div>';
       el.querySelectorAll("select")[0].onchange = e =>{ edicoes[p.i]={...e0, c:e.target.value}; contar(); };
       el.querySelectorAll("select")[1].onchange = e =>{ edicoes[p.i]={...e0, s:e.target.value}; contar(); };
+      ligaDesc(el, e0.c, t => { edicoes[p.i] = {...(edicoes[p.i]||e0), d:t}; contar(); },
+               ()=> (edicoes[p.i]||e0).c).value = e0.d || "";
       el.querySelector("input").oninput  = e =>{ edicoes[p.i]={...e0, n:e.target.value}; contar(); };
       el.querySelector(".lixo").onclick  = ()=>{
         if(confirm("Tirar a peça OOMM-"+String(p.i).padStart(3,"0")+" do catálogo?")){
@@ -316,6 +333,30 @@
       el.querySelector(".im").onclick = ()=>abrirZoom(p.r ? "/fotos/p"+p.i+".jpg" : BASE+"img/catalogo/p"+String(p.i).padStart(2,"0")+".jpg");
       g.appendChild(el);
     });
+  }
+
+  function campoDesc(valor){
+    return '<div class="desc-box">'+
+      '<textarea class="desc" rows="3" placeholder="Descrição da peça — aparece no catálogo"></textarea>'+
+      '<button class="sugerir" type="button" title="Inserir uma descrição pronta">Sugerir texto</button>'+
+      '</div>';
+  }
+
+  function ligaDesc(el, catInicial, aoMudar, catAtualFn){
+    const ta = el.querySelector("textarea.desc");
+    const bt = el.querySelector("button.sugerir");
+    // valor inicial já veio no HTML? textarea não aceita value= — preenchemos aqui
+    ta.addEventListener("input", ()=>aoMudar(ta.value));
+    let volta = 0;
+    bt.addEventListener("click", ()=>{
+      const cat = (catAtualFn ? catAtualFn() : catInicial) || "brindes";
+      const opcoes = SUGESTOES[cat] || SUGESTOES.brindes;
+      ta.value = opcoes[volta % opcoes.length];
+      volta++;
+      aoMudar(ta.value);
+      ta.focus();
+    });
+    return ta;
   }
 
   /* ================= ABA PÁGINAS ================= */
@@ -337,7 +378,9 @@
         const el = document.createElement("div");
         el.className = "slot" + (trocas[chave] ? " trocado" : "") + (escondido ? " off" : "");
         el.innerHTML =
-          '<div class="mini"><img src="'+(trocas[chave] ? trocas[chave].url : BASE+sl.src)+'" alt=""></div>'+
+          (trocas[chave] && trocas[chave].video
+            ? '<div class="mini"><video src="'+trocas[chave].url+'" muted loop autoplay playsinline style="width:100%;height:100%;object-fit:cover"></video></div>'
+            : '<div class="mini"><img src="'+(trocas[chave] ? trocas[chave].url : BASE+sl.src)+'" alt=""></div>')+
           '<div><p class="rot">'+sl.rotulo+'</p>'+
           '<p class="det">'+sl.grupo+' · '+(trocas[chave] ? "foto nova" : sl.src)+'</p>'+
           (sl.card !== null ? '<label class="mostrar"><input type="checkbox" '+(escondido?"":"checked")+'> aparece no site</label>' : '')+
@@ -345,12 +388,14 @@
           '<button>Trocar foto</button>';
 
         el.querySelector("button").onclick = ()=>{
-          const inp = document.createElement("input"); inp.type="file"; inp.accept="image/*";
+          const inp = document.createElement("input"); inp.type="file"; inp.accept="image/*,video/mp4,video/webm";
           inp.onchange = async ()=>{
             const fl = inp.files[0]; if(!fl) return;
             try{
-              const blob = await processar(fl, 1200, 0.85);
-              trocas[chave] = {blob, url:URL.createObjectURL(blob)};
+              const ehVideo = fl.type.startsWith("video/");
+              if(ehVideo && fl.size > 30e6) throw new Error("Vídeo acima de 30 MB. Corte ou reduza a qualidade.");
+              const blob = ehVideo ? fl : await processar(fl, 1200, 0.85);
+              trocas[chave] = {blob, url:URL.createObjectURL(blob), video:ehVideo};
               montarSlots(); contar();
             }catch(err){ alert(err.message); }
           };
@@ -374,7 +419,10 @@
         const el = document.createElement("div");
         el.className = "card-novo" + (c.blob && c.titulo ? " pronto" : "");
         el.innerHTML =
-          '<div class="foto">'+(c.url ? '<img src="'+c.url+'" alt="">' : 'clique para<br>escolher a foto')+'</div>'+
+          '<div class="foto">'+(c.url
+            ? (c.video ? '<video src="'+c.url+'" muted loop autoplay playsinline style="width:100%;height:100%;object-fit:cover"></video>'
+                       : '<img src="'+c.url+'" alt="">')
+            : 'clique para<br>escolher<br>foto ou vídeo')+'</div>'+
           '<div class="campos">'+
             '<input type="text" placeholder="Título — obrigatório" value="'+(c.titulo||"").replace(/"/g,"&quot;")+'">'+
             '<input type="text" placeholder="Descrição curta" value="'+(c.desc||"").replace(/"/g,"&quot;")+'">'+
@@ -410,11 +458,13 @@
   }
 
   function escolherFoto(c, pag){
-    const inp = document.createElement("input"); inp.type="file"; inp.accept="image/*";
+    const inp = document.createElement("input"); inp.type="file"; inp.accept="image/*,video/mp4,video/webm";
     inp.onchange = async ()=>{
       const fl = inp.files[0]; if(!fl) return;
       try{
-        c.blob = await processar(fl, 1200, 0.85);
+        c.video = fl.type.startsWith("video/");
+        if(c.video && fl.size > 30e6) throw new Error("Vídeo acima de 30 MB.");
+        c.blob = c.video ? fl : await processar(fl, 1200, 0.85);
         c.url  = URL.createObjectURL(c.blob);
         montarSlots(); contar();
       }catch(e){ alert(e.message); }
@@ -452,10 +502,57 @@
   }
 
 
+  /* ================= ABA: GOOGLE ================= */
+  function montarSeo(){
+    const alvo = $("#listaSeo"); alvo.innerHTML = "";
+    SEO.forEach(p=>{
+      const e = seoEdit[p.pagina] || {};
+      const titulo = e.titulo !== undefined ? e.titulo : p.titulo;
+      const desc   = e.descricao !== undefined ? e.descricao : p.descricao;
+
+      const el = document.createElement("div");
+      el.className = "seo-bloco" + (p.pagina in seoEdit ? " mudou" : "");
+      el.innerHTML =
+        '<h4>'+p.tituloPagina+'</h4>'+
+        '<p class="url">studiolab3d.com.br/'+(p.pagina==="index.html"?"":p.pagina)+'</p>'+
+        '<div class="seo-campo"><label>Título <span class="contagem" data-c="t"></span></label>'+
+          '<textarea rows="2" data-k="titulo"></textarea></div>'+
+        '<div class="seo-campo"><label>Descrição <span class="contagem" data-c="d"></span></label>'+
+          '<textarea rows="3" data-k="descricao"></textarea></div>'+
+        '<div class="seo-previa"><p class="p-url">studiolab3d.com.br › '+
+          (p.pagina==="index.html"?"":p.pagina.replace(".html",""))+'</p>'+
+          '<p class="p-tit"></p><p class="p-desc"></p></div>'+
+        '<p class="seo-dica">O Google costuma cortar o título perto de 60 caracteres e a descrição perto de 155. '+
+        'Escreva o que a pessoa buscaria, não o nome interno da página.</p>';
+
+      const [tIn, dIn] = el.querySelectorAll("textarea");
+      tIn.value = titulo; dIn.value = desc;
+
+      function atualiza(){
+        const t = tIn.value, d = dIn.value;
+        el.querySelector('.p-tit').textContent  = t || "(sem título)";
+        el.querySelector('.p-desc').textContent = d || "(sem descrição)";
+        const ct = el.querySelector('[data-c="t"]'), cd = el.querySelector('[data-c="d"]');
+        ct.textContent = t.length + "/60";
+        cd.textContent = d.length + "/155";
+        ct.className = "contagem " + (t.length===0 ? "" : t.length>60 ? "ruim" : t.length>=30 ? "bom" : "");
+        cd.className = "contagem " + (d.length===0 ? "" : d.length>155 ? "ruim" : d.length>=70 ? "bom" : "");
+        if(t === p.titulo && d === p.descricao) delete seoEdit[p.pagina];
+        else seoEdit[p.pagina] = {titulo:t, descricao:d};
+        el.classList.toggle("mudou", p.pagina in seoEdit);
+        contar();
+      }
+      tIn.addEventListener("input", atualiza);
+      dIn.addEventListener("input", atualiza);
+      alvo.appendChild(el);
+      atualiza();
+    });
+  }
+
   /* ================= ABAS / ZOOM ================= */
   document.querySelectorAll(".aba").forEach(b=>b.addEventListener("click", ()=>{
     document.querySelectorAll(".aba").forEach(x=>x.setAttribute("aria-selected", x===b));
-    ["cat","pag","txt"].forEach(k=> $("#p-"+k).hidden = b.dataset.p !== k);
+    ["cat","pag","txt","seo"].forEach(k=> $("#p-"+k).hidden = b.dataset.p !== k);
   }));
   function abrirZoom(src){ $("#zoomImg").src = src; $("#zoom").classList.add("on"); }
   $("#zoom").addEventListener("click", ()=>$("#zoom").classList.remove("on"));
@@ -467,7 +564,8 @@
           ed = Object.keys(edicoes).length,
           tx = Object.keys(textosEdit).length,
           nc = Object.values(novosCards).reduce((a,x)=>a+x.length,0),
-          oc = Object.values(ocultos).reduce((a,x)=>a+x.size,0);
+          oc = Object.values(ocultos).reduce((a,x)=>a+x.size,0),
+          sq = Object.keys(seoEdit).length;
     const partes = [];
     if(n)  partes.push("<b>"+n+"</b> peça(s) nova(s)");
     if(r)  partes.push("<b>"+r+"</b> removida(s)");
@@ -476,6 +574,7 @@
     if(tx) partes.push("<b>"+tx+"</b> texto(s)");
     if(nc) partes.push("<b>"+nc+"</b> card(s) novo(s)");
     if(oc) partes.push("<b>"+oc+"</b> card(s) escondido(s)");
+    if(sq) partes.push("<b>"+sq+"</b> página(s) com SEO editado");
     $("#contador").innerHTML = partes.length ? (partes.join(" · ") + " — ainda não publicado") : "Tudo publicado. Nenhuma alteração pendente.";
     $("#btnPublicar").disabled = !partes.length;
   }
@@ -483,8 +582,8 @@
   $("#btnDescartar").addEventListener("click", ()=>{
     if(!confirm("Descartar todas as alterações desta sessão?")) return;
     novas.length = 0; removidas.clear();
-    [edicoes, trocas, textosEdit, novosCards, ocultos].forEach(o=>Object.keys(o).forEach(k=>delete o[k]));
-    montarCatalogo(); montarSlots(); montarTextos(); contar();
+    [edicoes, trocas, textosEdit, novosCards, ocultos, seoEdit].forEach(o=>Object.keys(o).forEach(k=>delete o[k]));
+    montarCatalogo(); montarSlots(); montarTextos(); montarSeo(); contar();
   });
 
   /* ================= PUBLICAR ================= */
@@ -492,7 +591,7 @@
     const lista = [];
     PRODUTOS.forEach(p=>{
       if(removidas.has(p.i)) return;
-      const e0 = edicoes[p.i] || {c:p.c, n:p.n, s:p.s};
+      const e0 = edicoes[p.i] || {c:p.c, n:p.n, s:p.s, d:p.d};
       const item = {c:e0.c, n:e0.n||"", i:p.i};
       if(e0.s) item.s = e0.s;
       if(p.r)  item.r = 1;
@@ -501,6 +600,7 @@
     novas.forEach(n=>{
       const item = {c:n.cat, n:n.nome||"", i:n.id, r:1};
       if(n.selo) item.s = n.selo;
+      if(n.desc) item.d = n.desc;
       lista.push(item);
     });
     return lista;
@@ -530,12 +630,13 @@
       }
 
       // 2) fotos trocadas nas páginas
-      const pub = window.__pub || {fotos:{},textos:{},ocultos:{},novos:{}};
+      const pub = window.__pub || {fotos:{},textos:{},ocultos:{},novos:{},seo:{}};
       const chaves = Object.keys(trocas);
       let k = 0;
       for(const chave of chaves){
         btn.textContent = "Enviando foto de página " + (++k) + " de " + chaves.length + "…";
-        const nome = "site/" + chave.replace("|","-").replace(".html","") + "-" + Date.now() + ".jpg";
+        const ext = trocas[chave].video ? ".mp4" : ".jpg";
+        const nome = "site/" + chave.replace("|","-").replace(".html","") + "-" + Date.now() + ext;
         await enviar("/api/admin/foto?nome=" + encodeURIComponent(nome), {method:"POST", body:trocas[chave].blob});
         pub.fotos[chave] = "/fotos/" + nome;
       }
@@ -546,7 +647,7 @@
         for(const c of lista){
           if(!c.titulo || !c.blob) continue;   // card incompleto é ignorado
           btn.textContent = "Enviando card novo…";
-          const nome = "cards/" + pag.replace(".html","") + "-" + Date.now() + "-" + Math.random().toString(36).slice(2,7) + ".jpg";
+          const nome = "cards/" + pag.replace(".html","") + "-" + Date.now() + "-" + Math.random().toString(36).slice(2,7) + (c.video ? ".mp4" : ".jpg");
           await enviar("/api/admin/foto?nome=" + encodeURIComponent(nome), {method:"POST", body:c.blob});
           (novosProntos[pag] = novosProntos[pag] || []).push({
             img:"/fotos/"+nome, titulo:c.titulo, desc:c.desc||"", chips:c.chips||[]
@@ -567,7 +668,11 @@
         pub.textos[pag][sel][i] = txt;
       });
 
-      // 5) cards escondidos
+      // 5) título e descrição das páginas
+      pub.seo = {};
+      Object.entries(seoEdit).forEach(([pag,v])=>{ if(v.titulo || v.descricao) pub.seo[pag] = v; });
+
+      // 5b) cards escondidos
       pub.ocultos = {};
       Object.entries(ocultos).forEach(([pag, set])=>{ if(set.size) pub.ocultos[pag] = [...set]; });
 
@@ -591,7 +696,7 @@
       novas.length = 0; removidas.clear();
       [edicoes, trocas, novosCards].forEach(o=>Object.keys(o).forEach(x=>delete o[x]));
       await carregarCatalogo();
-      montarCatalogo(); montarSlots(); montarTextos(); contar();
+      montarCatalogo(); montarSlots(); montarTextos(); montarSeo(); contar();
       window.scrollTo({top:0, behavior:"smooth"});
 
     }catch(err){
