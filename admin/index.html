@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Admin · OOMM Studio</title>
-<!-- ADMIN v10 · 19/07/2026 — sem tela de login: a proteção é do Cloudflare Access -->
+<!-- ADMIN v11 · 19/07/2026 — sem tela de login: a proteção é do Cloudflare Access -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{--ink:#2A2126;--paper:#F4ECE3;--card:#fff;--line:#E3D6C9;--teal:#A63E60;--teal-d:#9B3A58;
@@ -100,7 +100,7 @@
 <div id="telaPainel">
   <header class="top">
     <h1>Admin · OOMM Studio</h1>
-    <span class="quem" id="quem"></span><span class="quem" style="margin-left:0;opacity:.7">· v10 · 19/07/2026</span>
+    <span class="quem" id="quem"></span><span class="quem" style="margin-left:0;opacity:.7">· v11 · 19/07/2026</span>
     <a href="editor-catalogo.html" style="color:#EE9CB2;font-size:13.5px;text-decoration:underline">Editor de categorias</a>
     <button id="sair" style="background:transparent;border-color:#5A424C;color:#fff;padding:7px 13px;font-size:13.5px">Sair</button>
   </header>
@@ -586,65 +586,174 @@
     }finally{ carregandoNum = false; }
   }
 
+  const nf = n => (n||0).toLocaleString("pt-BR");
+  const CORES = ["#A63E60","#1F8A54","#B0863F","#5B4B8A","#3C7C8A","#C25A3A","#7A6A5F","#9B5DA8"];
+
   function desenhar(d, alvo){
     const t = d.totais || {};
-    const visitas = t.pagina || 0, zap = t.whatsapp || 0, loja = t.loja || 0, peca = t.peca || 0;
-    const taxa = visitas ? ((zap / visitas) * 100).toFixed(1) : "0,0";
-    const nf = n => n.toLocaleString("pt-BR");
+    const visitas = t.pagina||0, zap = t.whatsapp||0, loja = t.loja||0, peca = t.peca||0;
+    const taxa = visitas ? (zap/visitas*100) : 0;
 
-    const cartoes =
+    const noCatalogo = (d.paginas||[]).find(x=>/catalogo/.test(x.alvo));
+    const vistasCat = noCatalogo ? noCatalogo.n : 0;
+
+    alvo.innerHTML =
       '<div class="cartoes">'+
-      cartao("Páginas vistas", nf(visitas), "nos últimos "+d.dias+" dias")+
-      cartao("Cliques no WhatsApp", nf(zap), "pedidos iniciados", true)+
-      cartao("Taxa de contato", taxa.replace(".",",")+"%", "de quem visitou chamou")+
-      cartao("Cliques nas lojas", nf(loja), "Shopee e Mercado Livre")+
-      '</div>';
+        cartao("Páginas vistas", nf(visitas), "nos últimos "+d.dias+" dias")+
+        cartao("Cliques no WhatsApp", nf(zap), "conversas iniciadas", true)+
+        cartao("Taxa de contato", taxa.toFixed(1).replace(".",",")+"%", diagnostico(taxa))+
+        cartao("Cliques nas lojas", nf(loja), "Shopee e Mercado Livre")+
+      '</div>'+
+      '<div class="g-card"><h4>Movimento dia a dia</h4>'+
+        '<p class="leg-sub">Quantas pessoas passaram pelo site e quantas chamaram no WhatsApp.</p>'+
+        areaDupla(d.porDia)+
+      '</div>'+
+      '<div class="g-grid">'+
+        '<div class="g-card"><h4>Do primeiro clique ao pedido</h4>'+
+          '<p class="leg-sub">Onde as pessoas param no caminho.</p>'+
+          funil(visitas, vistasCat, peca, zap)+
+        '</div>'+
+        '<div class="g-card"><h4>De onde vem a visita</h4>'+
+          '<p class="leg-sub">Qual canal traz gente para o site.</p>'+
+          rosca(d.origens)+
+        '</div>'+
+      '</div>'+
+      '<div class="g-linha">'+
+        '<div class="g-card"><h4>Páginas mais vistas</h4><p class="leg-sub">&nbsp;</p>'+
+          barras(d.paginas, "#A63E60")+'</div>'+
+        '<div class="g-card"><h4>Peças mais pedidas</h4>'+
+          '<p class="leg-sub">Cliques no botão + do catálogo.</p>'+
+          barras(d.pecas, "#1F8A54")+'</div>'+
+      '</div>'+
+      '<p style="color:var(--muted);font-size:13.5px;margin-top:6px;line-height:1.6">'+
+        'Contamos só o que acontece no site — sem cookie e sem identificar ninguém. '+
+        'Robôs de busca são descartados, então estes números são menores e mais honestos '+
+        'que os de outras ferramentas.</p>';
+  }
 
-    // gráfico por dia
-    const dias = {};
-    (d.porDia||[]).forEach(r=>{
-      dias[r.dia] = dias[r.dia] || {pagina:0, whatsapp:0};
-      if(r.tipo==="pagina") dias[r.dia].pagina = r.n;
-      if(r.tipo==="whatsapp") dias[r.dia].whatsapp = r.n;
+  function diagnostico(taxa){
+    if(!taxa) return "ainda sem cliques";
+    if(taxa < 2)  return "abaixo do esperado — revise a página";
+    if(taxa < 5)  return "dentro do normal";
+    return "acima da média — vale investir em alcance";
+  }
+
+  /* ---------- gráfico de área com duas séries ---------- */
+  function areaDupla(porDia){
+    const mapa = {};
+    (porDia||[]).forEach(r=>{
+      mapa[r.dia] = mapa[r.dia] || {p:0, z:0};
+      if(r.tipo==="pagina")   mapa[r.dia].p = r.n;
+      if(r.tipo==="whatsapp") mapa[r.dia].z = r.n;
     });
-    const chaves = Object.keys(dias).sort();
-    const maior = Math.max(1, ...chaves.map(k=>dias[k].pagina));
-    const grafico = chaves.length
-      ? '<div class="grafico">'+chaves.map(k=>{
-          const v = dias[k];
-          const dt = k.split("-").reverse().slice(0,2).join("/");
-          return '<div class="col" data-t="'+dt+' · '+v.pagina+' visitas · '+v.whatsapp+' no zap">'+
-            '<div class="b2" style="height:'+(v.whatsapp/maior*100)+'%"></div>'+
-            '<div class="b1" style="height:'+(v.pagina/maior*100)+'%"></div></div>';
-        }).join("")+'</div>'+
-        '<div class="legenda"><span><i style="background:#C9B7A9"></i>páginas vistas</span>'+
-        '<span><i style="background:#A63E60"></i>cliques no WhatsApp</span></div>'
-      : '<div class="msg warn">Ainda não há dados no período. Os números começam a aparecer conforme as pessoas visitam o site.</div>';
+    const dias = Object.keys(mapa).sort();
+    if(dias.length < 2) return '<p class="g-vazio">Ainda não há dias suficientes para desenhar a curva. Volte depois de alguns dias de visita.</p>';
 
-    const tabelas = '<div class="tabelas">'+
-      tabela("Páginas mais vistas", d.paginas)+
-      tabela("Peças mais pedidas", d.pecas)+
-      tabela("De onde vem a visita", d.origens)+
-      tabela("Cliques por loja", d.lojas)+
-      '</div>';
+    const W = 760, H = 240, ML = 42, MR = 12, MT = 14, MB = 26;
+    const iw = W-ML-MR, ih = H-MT-MB;
+    const max = Math.max(1, ...dias.map(k=>mapa[k].p));
+    const teto = Math.ceil(max/5)*5 || 5;
+    const x = i => ML + (dias.length===1 ? iw/2 : i*iw/(dias.length-1));
+    const y = v => MT + ih - (v/teto)*ih;
 
-    alvo.innerHTML = cartoes + grafico + tabelas +
-      '<p style="color:var(--muted);font-size:13.5px;margin-top:22px;line-height:1.6">'+
-      'Contamos só o que a pessoa faz no site — nenhum dado pessoal, nenhum cookie. '+
-      'Robôs de busca são descartados, então estes números costumam ser menores e mais honestos '+
-      'que os de outras ferramentas.</p>';
+    const linha = (sel) => dias.map((k,i)=>(i?"L":"M")+x(i).toFixed(1)+" "+y(mapa[k][sel]).toFixed(1)).join(" ");
+    const area  = (sel) => linha(sel)+" L"+x(dias.length-1).toFixed(1)+" "+(MT+ih)+" L"+x(0).toFixed(1)+" "+(MT+ih)+" Z";
+
+    let grade = "", rot = "";
+    for(let g=0; g<=4; g++){
+      const v = teto*g/4, yy = y(v);
+      grade += '<line x1="'+ML+'" y1="'+yy.toFixed(1)+'" x2="'+(W-MR)+'" y2="'+yy.toFixed(1)+'" stroke="#F0E7DC"/>';
+      grade += '<text x="'+(ML-8)+'" y="'+(yy+4).toFixed(1)+'" text-anchor="end" font-size="11" fill="#8A7680">'+Math.round(v)+'</text>';
+    }
+    const passo = Math.max(1, Math.ceil(dias.length/7));
+    dias.forEach((k,i)=>{
+      if(i % passo && i !== dias.length-1) return;
+      const dt = k.slice(8)+"/"+k.slice(5,7);
+      rot += '<text x="'+x(i).toFixed(1)+'" y="'+(H-6)+'" text-anchor="middle" font-size="11" fill="#8A7680">'+dt+'</text>';
+    });
+
+    const pontos = dias.map((k,i)=>
+      '<g><circle cx="'+x(i).toFixed(1)+'" cy="'+y(mapa[k].z).toFixed(1)+'" r="3.2" fill="#A63E60"/>'+
+      '<circle cx="'+x(i).toFixed(1)+'" cy="'+y(mapa[k].p).toFixed(1)+'" r="9" fill="transparent">'+
+      '<title>'+k.split("-").reverse().join("/")+"\n"+mapa[k].p+' visitas\n'+mapa[k].z+' no WhatsApp</title></circle></g>').join("");
+
+    return '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Movimento diário">'+
+      '<defs><linearGradient id="gv" x1="0" y1="0" x2="0" y2="1">'+
+      '<stop offset="0%" stop-color="#C9B7A9" stop-opacity=".55"/>'+
+      '<stop offset="100%" stop-color="#C9B7A9" stop-opacity="0"/></linearGradient></defs>'+
+      grade+
+      '<path d="'+area("p")+'" fill="url(#gv)"/>'+
+      '<path d="'+linha("p")+'" fill="none" stroke="#A08C7D" stroke-width="2" stroke-linejoin="round"/>'+
+      '<path d="'+linha("z")+'" fill="none" stroke="#A63E60" stroke-width="2.4" stroke-linejoin="round"/>'+
+      pontos+rot+
+      '</svg>'+
+      '<div class="g-leg"><span><i style="background:#A08C7D"></i>páginas vistas</span>'+
+      '<span><i style="background:#A63E60"></i>cliques no WhatsApp</span></div>';
+  }
+
+  /* ---------- funil ---------- */
+  function funil(visitas, catalogo, pecas, zap){
+    // As etapas não são encaixadas: dá para chamar no WhatsApp sem passar pelo
+    // catálogo. Por isso cada uma é comparada ao total de visitas, e não à
+    // etapa anterior — comparar entre etapas produziria percentuais acima de 100%.
+    const etapas = [
+      {t:"Entraram no site",     v:visitas,  c:"#C9B7A9", d:"todas as páginas"},
+      {t:"Abriram o catálogo",   v:catalogo, c:"#B0863F", d:"viram as peças"},
+      {t:"Clicaram numa peça",   v:pecas,    c:"#5B4B8A", d:"botão + do catálogo"},
+      {t:"Chamaram no WhatsApp", v:zap,      c:"#A63E60", d:"de qualquer página"}
+    ];
+    if(!visitas) return '<p class="g-vazio">Sem visitas no período.</p>';
+    let html = '<div class="funil">';
+    etapas.forEach(e=>{
+      const pc = visitas ? (e.v/visitas*100) : 0;
+      html += '<div class="f" style="background:'+e.c+';width:'+Math.max(30, pc).toFixed(1)+'%;min-width:215px">'+
+              '<span class="t">'+e.t+'<small>'+e.d+'</small></span>'+
+              '<span class="v">'+nf(e.v)+'<small>'+pc.toFixed(1).replace(".",",")+'%</small></span></div>';
+    });
+    return html+'</div><p class="funil-nota">Cada barra é comparada ao total de visitas. '+
+           'As etapas não são encaixadas: dá para chamar no WhatsApp sem passar pelo catálogo.</p>';
+  }
+
+  /* ---------- rosca ---------- */
+  function rosca(origens){
+    const l = (origens||[]).filter(x=>x.alvo && x.n);
+    if(!l.length) return '<p class="g-vazio">Sem dados de origem ainda.</p>';
+    const total = l.reduce((a,x)=>a+x.n, 0);
+    const R = 62, r = 40, cx = 78, cy = 78;
+    let ang = -Math.PI/2, fatias = "";
+    l.forEach((x,i)=>{
+      const frac = x.n/total, fim = ang + frac*Math.PI*2;
+      const grande = frac > .5 ? 1 : 0;
+      const p = (raio,a)=> [cx+raio*Math.cos(a), cy+raio*Math.sin(a)];
+      const [x1,y1]=p(R,ang), [x2,y2]=p(R,fim), [x3,y3]=p(r,fim), [x4,y4]=p(r,ang);
+      fatias += '<path d="M'+x1.toFixed(1)+' '+y1.toFixed(1)+' A'+R+' '+R+' 0 '+grande+' 1 '+x2.toFixed(1)+' '+y2.toFixed(1)+
+                ' L'+x3.toFixed(1)+' '+y3.toFixed(1)+' A'+r+' '+r+' 0 '+grande+' 0 '+x4.toFixed(1)+' '+y4.toFixed(1)+' Z" '+
+                'fill="'+CORES[i%CORES.length]+'"><title>'+x.alvo+': '+x.n+' ('+(frac*100).toFixed(0)+'%)</title></path>';
+      ang = fim;
+    });
+    const leg = l.map((x,i)=>'<div class="it"><i style="background:'+CORES[i%CORES.length]+'"></i>'+
+      '<span>'+String(x.alvo).slice(0,22)+'</span><span class="q">'+(x.n/total*100).toFixed(0)+'%</span></div>').join("");
+    return '<div class="rosca-wrap"><svg viewBox="0 0 156 156" role="img" aria-label="Origem das visitas">'+
+      fatias+
+      '<text class="rosca-centro" x="78" y="76" text-anchor="middle">'+nf(total)+'</text>'+
+      '<text class="rosca-rot" x="78" y="92" text-anchor="middle">VISITAS</text>'+
+      '</svg><div class="rosca-leg">'+leg+'</div></div>';
+  }
+
+  /* ---------- barras horizontais ---------- */
+  function barras(linhas, cor){
+    const l = (linhas||[]).filter(x=>x.alvo);
+    if(!l.length) return '<p class="g-vazio">Sem dados ainda.</p>';
+    const max = Math.max(...l.map(x=>x.n));
+    return l.slice(0,8).map(x=>
+      '<div class="bh"><span class="nome" title="'+x.alvo+'">'+String(x.alvo).replace(/^\//,"").replace(".html","")+'</span>'+
+      '<span class="trilho"><span class="barra" style="width:'+(x.n/max*100).toFixed(1)+'%;background:'+cor+'"></span></span>'+
+      '<span class="n">'+nf(x.n)+'</span></div>').join("");
   }
 
   function cartao(rot, val, sub, destaque){
     return '<div class="cartao'+(destaque?" destaque":"")+'">'+
       '<p class="rot">'+rot+'</p><p class="val">'+val+'</p><p class="sub">'+sub+'</p></div>';
-  }
-
-  function tabela(titulo, linhas){
-    const l = (linhas||[]).filter(x=>x.alvo);
-    return '<div class="tab-num"><h4>'+titulo+'</h4>'+
-      (l.length ? l.map(x=>'<div class="l"><span>'+String(x.alvo).slice(0,42)+'</span><b>'+x.n+'</b></div>').join("")
-                : '<p class="vazio">Sem dados ainda.</p>')+'</div>';
   }
 
   document.querySelectorAll(".per").forEach(b=>b.addEventListener("click", ()=>{
