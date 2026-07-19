@@ -43,6 +43,27 @@ Se preferir pelo painel: **Workers & Pages → studiolab3d → Settings → Bind
 adicionando `FOTOS` → bucket `oomm-fotos` e `DADOS` → namespace `oomm-dados`.
 O arquivo é mais confiável: sobrevive a redeploys.
 
+## 3b. Criar o banco dos números (D1)
+
+O painel tem uma aba **Números** com visitas, cliques no WhatsApp e nas lojas.
+Sem este passo ela avisa que falta o banco — o resto do site funciona igual.
+
+1. **Storage & databases → D1 SQLite Database** → **Create**
+2. Nome: **`oomm-metricas`**
+3. Copie o **Database ID** e cole no `wrangler.jsonc`:
+
+```jsonc
+"d1_databases": [
+  { "binding": "METRICAS", "database_name": "oomm-metricas", "database_id": "o-id-copiado" }
+]
+```
+
+A tabela é criada sozinha no primeiro acesso. Não precisa rodar SQL.
+
+**Por que D1 e não KV:** o KV gratuito permite mil gravações por dia, e cada
+visita é uma gravação. O D1 permite cem mil por dia. Se o site estourar em
+alcance, os números continuam sendo contados.
+
 ## 4. Proteger a API no Access
 
 **Este passo não é opcional.** Sem ele o painel recusa publicar — de propósito.

@@ -25,6 +25,7 @@ export default {
 
     try {
       if (p === "/api/catalogo")        return await catalogoPublico(request, env);
+      if (p === "/api/evento")          return await registrarEvento(request, env);
       if (p.startsWith("/api/admin/"))  return await rotaAdmin(request, env, url);
       if (p.startsWith("/fotos/"))      return await servirFoto(request, env, url, ctx);
     } catch (erro) {
@@ -46,16 +47,48 @@ export default {
     const textos    = edicoes.textos  && edicoes.textos[pagina]  || null;  // {sel: {n: txt}}
     const ocultos   = new Set((edicoes.ocultos && edicoes.ocultos[pagina]) || []);
     const novos     = (edicoes.novos && edicoes.novos[pagina]) || [];
+    const seo       = edicoes.seo && edicoes.seo[pagina] || null;
 
-    if (!Object.keys(fotos).length && !textos && !ocultos.size && !novos.length)
+    if (!Object.keys(fotos).length && !textos && !ocultos.size && !novos.length && !seo)
       return resposta;
 
     let rw = new HTMLRewriter();
 
-    // fotos trocadas: n-ésima <img> dentro de <main>
+    // título e descrição para busca e redes sociais
+    if (seo) {
+      if (seo.titulo) {
+        rw = rw.on("title", { element(el) { el.setInnerContent(seo.titulo, { html: false }); } })
+               .on('meta[property="og:title"]',    { element(el) { el.setAttribute("content", seo.titulo); } })
+               .on('meta[name="twitter:title"]',   { element(el) { el.setAttribute("content", seo.titulo); } });
+      }
+      if (seo.descricao) {
+        rw = rw.on('meta[name="description"]',        { element(el) { el.setAttribute("content", seo.descricao); } })
+               .on('meta[property="og:description"]', { element(el) { el.setAttribute("content", seo.descricao); } })
+               .on('meta[name="twitter:description"]',{ element(el) { el.setAttribute("content", seo.descricao); } });
+      }
+    }
+
+    // fotos trocadas: n-ésima <img> dentro de <main>.
+    // Se o arquivo for vídeo, a <img> é substituída por um <video> em loop mudo.
     if (Object.keys(fotos).length) {
       let i = -1;
-      rw = rw.on("main img", { element(el) { i++; if (fotos[i]) el.setAttribute("src", fotos[i]); } });
+      rw = rw.on("main img", {
+        element(el) {
+          i++;
+          const novo = fotos[i];
+          if (!novo) return;
+          if (/\.(mp4|webm|mov)$/i.test(novo)) {
+            const alt = el.getAttribute("alt") || "";
+            el.replace(
+              '<video class="video-peca" autoplay muted loop playsinline preload="metadata" ' +
+              'aria-label="' + esc(alt) + '"><source src="' + esc(novo) + '" type="video/mp4"></video>',
+              { html: true }
+            );
+          } else {
+            el.setAttribute("src", novo);
+          }
+        }
+      });
     }
 
     // textos: para cada seletor, a n-ésima ocorrência
@@ -127,7 +160,7 @@ async function rotaAdmin(request, env, url) {
   }
 
   if (p === "/api/admin/paginas" && request.method === "GET") {
-    return json(await lerJSON(env, "paginas", { fotos:{}, textos:{}, ocultos:{}, novos:{} }));
+    return json(await lerJSON(env, "paginas", { fotos:{}, textos:{}, ocultos:{}, novos:{}, seo:{} }));
   }
 
   if (p === "/api/admin/paginas" && request.method === "PUT") {
@@ -137,7 +170,8 @@ async function rotaAdmin(request, env, url) {
       fotos:   corpo.fotos   || {},
       textos:  corpo.textos  || {},
       ocultos: corpo.ocultos || {},
-      novos:   corpo.novos   || {}
+      novos:   corpo.novos   || {},
+      seo:     corpo.seo     || {}
     }));
     return json({ ok: true });
   }
@@ -146,13 +180,23 @@ async function rotaAdmin(request, env, url) {
     const nome = url.searchParams.get("nome");
     if (!nome || !/^[\w./-]{1,80}$/.test(nome) || nome.includes(".."))
       return json({ erro: "Nome de arquivo inválido." }, 400);
+    const video = /\.(mp4|webm|mov)$/i.test(nome);
+    const limite = video ? 30e6 : 6e6;
     const bytes = await request.arrayBuffer();
-    if (!bytes.byteLength)          return json({ erro: "Arquivo vazio." }, 400);
-    if (bytes.byteLength > 6e6)     return json({ erro: "Arquivo acima de 6 MB." }, 413);
+    if (!bytes.byteLength)      return json({ erro: "Arquivo vazio." }, 400);
+    if (bytes.byteLength > limite)
+      return json({ erro: "Arquivo acima de " + (limite / 1e6) + " MB." }, 413);
     await env.FOTOS.put(nome, bytes, {
-      httpMetadata: { contentType: "image/jpeg", cacheControl: CACHE_FOTO }
+      httpMetadata: {
+        contentType: video ? (nome.endsWith(".webm") ? "video/webm" : "video/mp4") : "image/jpeg",
+        cacheControl: CACHE_FOTO
+      }
     });
     return json({ ok: true, url: "/fotos/" + nome });
+  }
+
+  if (p === "/api/admin/metricas" && request.method === "GET") {
+    return json(await metricas(env, Number(url.searchParams.get("dias") || 30)));
   }
 
   if (p === "/api/admin/foto" && request.method === "DELETE") {
@@ -162,6 +206,73 @@ async function rotaAdmin(request, env, url) {
   }
 
   return json({ erro: "Rota não encontrada." }, 404);
+}
+
+/* ---------------------------------------------------------------- métricas */
+
+const TIPOS = new Set(["pagina", "whatsapp", "loja", "peca", "link"]);
+let tabelaPronta = false;
+
+async function prepararTabela(env) {
+  if (tabelaPronta) return;
+  await env.METRICAS.exec(
+    "CREATE TABLE IF NOT EXISTS eventos (ts INTEGER NOT NULL, dia TEXT NOT NULL, " +
+    "tipo TEXT NOT NULL, alvo TEXT NOT NULL, origem TEXT);"
+  );
+  await env.METRICAS.exec("CREATE INDEX IF NOT EXISTS idx_dia ON eventos (dia);");
+  await env.METRICAS.exec("CREATE INDEX IF NOT EXISTS idx_tipo ON eventos (tipo, dia);");
+  tabelaPronta = true;
+}
+
+// Robôs de busca e ferramentas não são visita. Sem filtrar isto, os números mentem.
+const ROBO = /bot|crawl|spider|slurp|bingpreview|facebookexternalhit|whatsapp|headless|lighthouse|preview|monitor|curl|wget|python-requests/i;
+
+async function registrarEvento(request, env) {
+  if (request.method !== "POST") return json({ erro: "Método não permitido." }, 405);
+  if (!env.METRICAS) return json({ ok: false });          // ainda sem banco: ignora em silêncio
+
+  const ua = request.headers.get("User-Agent") || "";
+  if (ROBO.test(ua)) return json({ ok: true });
+
+  let c;
+  try { c = await request.json(); } catch { return json({ erro: "Corpo inválido." }, 400); }
+
+  const tipo = String(c.tipo || "");
+  if (!TIPOS.has(tipo)) return json({ erro: "Tipo desconhecido." }, 400);
+  const alvo   = String(c.alvo   || "").slice(0, 120);
+  const origem = String(c.origem || "direto").slice(0, 60);
+
+  try {
+    await prepararTabela(env);
+    const agora = Date.now();
+    await env.METRICAS.prepare(
+      "INSERT INTO eventos (ts, dia, tipo, alvo, origem) VALUES (?, ?, ?, ?, ?)"
+    ).bind(agora, new Date(agora).toISOString().slice(0, 10), tipo, alvo, origem).run();
+  } catch (e) { /* medir nunca pode derrubar o site */ }
+
+  return json({ ok: true });
+}
+
+async function metricas(env, dias) {
+  if (!env.METRICAS) return { semBanco: true };
+  await prepararTabela(env);
+  const d = Math.max(1, Math.min(365, dias || 30));
+  const corte = new Date(Date.now() - d * 86400000).toISOString().slice(0, 10);
+
+  const q = async (sql) => (await env.METRICAS.prepare(sql).bind(corte).all()).results || [];
+
+  const [totais, porDia, paginas, pecas, lojas, origens] = await Promise.all([
+    q("SELECT tipo, COUNT(*) n FROM eventos WHERE dia >= ? GROUP BY tipo"),
+    q("SELECT dia, tipo, COUNT(*) n FROM eventos WHERE dia >= ? GROUP BY dia, tipo ORDER BY dia"),
+    q("SELECT alvo, COUNT(*) n FROM eventos WHERE dia >= ? AND tipo='pagina' GROUP BY alvo ORDER BY n DESC LIMIT 12"),
+    q("SELECT alvo, COUNT(*) n FROM eventos WHERE dia >= ? AND tipo='peca'   GROUP BY alvo ORDER BY n DESC LIMIT 12"),
+    q("SELECT alvo, COUNT(*) n FROM eventos WHERE dia >= ? AND tipo='loja'   GROUP BY alvo ORDER BY n DESC LIMIT 10"),
+    q("SELECT origem alvo, COUNT(*) n FROM eventos WHERE dia >= ? AND tipo='pagina' GROUP BY origem ORDER BY n DESC LIMIT 10")
+  ]);
+
+  const t = {};
+  totais.forEach(r => t[r.tipo] = r.n);
+  return { dias: d, totais: t, porDia, paginas, pecas, lojas, origens };
 }
 
 /* ------------------------------------------------------------------ fotos */
@@ -222,8 +333,12 @@ function esc(t) {
 function cardHTML(c) {
   const chips = (c.chips || []).filter(Boolean).slice(0, 3)
     .map(x => '<span class="chip">' + esc(x) + '</span>').join("");
+  const midia = /\.(mp4|webm|mov)$/i.test(c.img || "")
+    ? '<video class="video-peca" autoplay muted loop playsinline preload="metadata" aria-label="' +
+      esc(c.titulo) + '"><source src="' + esc(c.img) + '" type="video/mp4"></video>'
+    : '<img src="' + esc(c.img) + '" loading="lazy" alt="' + esc(c.titulo) + '">';
   return '<article class="prod">' +
-    '<div class="ph"><img src="' + esc(c.img) + '" loading="lazy" alt="' + esc(c.titulo) + '"></div>' +
+    '<div class="ph">' + midia + '</div>' +
     '<div class="body"><h4>' + esc(c.titulo) + '</h4><p>' + esc(c.desc || "") + '</p>' +
     (chips ? '<div class="spec">' + chips + '</div>' : '') +
     '</div></article>';
