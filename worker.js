@@ -448,10 +448,17 @@ async function registrarFavorito(request, env) {
 
 // Identidade fraca de propósito: sem login, o melhor possível é amarrar o voto
 // ao navegador e à rede. Serve para um catálogo; não é urna eletrônica.
-function assinatura(request, c) {
+//
+// O IP entra no cálculo mas NUNCA é guardado: viramos tudo em um resumo
+// irreversível (SHA-256). Dá para saber que dois votos vieram da mesma origem,
+// não de onde vieram. Isso é o que permite dizer, sem mentir, que o site não
+// armazena endereço IP.
+async function assinatura(request, c) {
   const ip = request.headers.get("CF-Connecting-IP") || "0";
   const marca = String(c && c.marca || "").slice(0, 40);
-  return (marca || "sem-marca") + "|" + ip;
+  const bruto = (marca || "sem-marca") + "|" + ip + "|oomm";
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(bruto));
+  return [...new Uint8Array(buf)].slice(0, 12).map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
 async function avaliar(request, env) {
@@ -466,7 +473,7 @@ async function avaliar(request, env) {
     await env.METRICAS.prepare(
       "INSERT INTO notas (peca, quem, nota, ts) VALUES (?, ?, ?, ?) " +
       "ON CONFLICT (peca, quem) DO UPDATE SET nota = excluded.nota, ts = excluded.ts"
-    ).bind(peca, assinatura(request, c), nota, Date.now()).run();
+    ).bind(peca, await assinatura(request, c), nota, Date.now()).run();
     const r = await env.METRICAS.prepare(
       "SELECT AVG(nota) media, COUNT(*) total FROM notas WHERE peca = ?"
     ).bind(peca).first();
@@ -592,7 +599,8 @@ async function sitemap(request, env) {
   const base = new URL(request.url).origin;
   const hoje = new Date().toISOString().slice(0, 10);
   const paginas = ["", "catalogo.html", "corporativo.html", "educacional.html",
-                   "casa.html", "festas.html", "conecte.html"];   // produto.html não entra:
+                   "casa.html", "festas.html", "conecte.html", "sobre.html",
+                   "termos.html", "privacidade.html"];   // produto.html não entra:
                    // ele só existe como molde das páginas /peca/...
 
   let itens = paginas.map(p =>
